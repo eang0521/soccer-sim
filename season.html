@@ -128,13 +128,7 @@
   </div>
 
   <div class="card" id="draft-gate">
-    <h2>Run the draft</h2>
-    <div class="report-block">
-      96 players, 16 teams. Each player's draft value is (Off + Def) &times; a random 1.00&ndash;2.00
-      multiplier. Draft order is randomized, then it's a straight snake draft from highest value
-      to lowest until every team has 6 players.
-    </div>
-    <button class="btn" onclick="doRunDraft()">Run Draft</button>
+    <div id="draft-gate-content"></div>
   </div>
 
   <div class="hidden" id="app-root">
@@ -799,7 +793,7 @@ function buildDefaultLeague(){
   const teams = TEAM_COLORS.map((tc,ti)=>({ id:'t'+ti, name:tc.name, color:tc.hex, playerIds:[] }));
   return {
     version:2, players, teams,
-    draftDone:false, draftReport:null,
+    draftDone:false, draftReport:null, draft:null,
     seasonNum:0, activeSeason:null,
     careerStats:{}, history:[]
   };
@@ -823,8 +817,10 @@ function resetLeague(){
 }
 
 // ---- Draft ----
-function doRunDraft(){
-  if(league.draftDone) return;
+// The board (order + snake-drafted pick sequence, values and all) is precomputed in one shot --
+// only the ACT of assigning each pick to its team is what gets paced out pick-by-pick or
+// round-by-round, same way the season schedule is precomputed but simulated one game at a time.
+function buildDraftBoard(){
   const order = shuffleArray(league.teams.map(t=>t.id).slice());
   const ranked = Object.keys(league.players).map(pid=>{
     const p = league.players[pid];
@@ -838,22 +834,59 @@ function doRunDraft(){
     for(const teamId of teamsThisRound){
       if(idx>=ranked.length) break;
       const {pid,value} = ranked[idx++];
-      const team = league.teams.find(t=>t.id===teamId);
-      team.playerIds.push(pid);
-      league.players[pid].teamId = teamId;
       picks.push({round:round+1, pick:picks.length+1, teamId, playerId:pid, value});
     }
     round++;
   }
-  league.draftReport = {order, picks};
+  return {order, picks};
+}
+function startDraft(){
+  if(league.draftDone || league.draft) return;
+  const {order,picks} = buildDraftBoard();
+  league.draft = {order, picks, nextPickIndex:0};
+  saveLeague();
+  render();
+}
+function applyDraftPick(){
+  const d = league.draft;
+  if(!d || d.nextPickIndex>=d.picks.length) return;
+  const pk = d.picks[d.nextPickIndex];
+  const team = league.teams.find(t=>t.id===pk.teamId);
+  team.playerIds.push(pk.playerId);
+  league.players[pk.playerId].teamId = pk.teamId;
+  d.nextPickIndex++;
+  if(d.nextPickIndex>=d.picks.length) finishDraft();
+}
+function finishDraft(){
+  const d = league.draft;
+  league.draftReport = {order:d.order, picks:d.picks};
   league.draftDone = true;
-
+  league.draft = null;
   Object.values(league.players).forEach(p=>{
     p.time = Math.random()*5;
     p.off = rollSeasonRating(p.baseOff, p.grade);
     p.def = rollSeasonRating(p.baseDef, p.grade);
   });
-
+}
+function draftNextPickBtn(){
+  if(!league.draft) return;
+  applyDraftPick();
+  saveLeague();
+  render();
+}
+function draftNextRoundBtn(){
+  if(!league.draft) return;
+  const startRound = league.draft.picks[league.draft.nextPickIndex].round;
+  while(league.draft && league.draft.nextPickIndex<league.draft.picks.length && league.draft.picks[league.draft.nextPickIndex].round===startRound){
+    applyDraftPick();
+  }
+  saveLeague();
+  render();
+}
+function draftSkipToEndBtn(){
+  while(league.draft && league.draft.nextPickIndex<league.draft.picks.length){
+    applyDraftPick();
+  }
   saveLeague();
   render();
 }
@@ -1869,11 +1902,63 @@ function renderHistoryTab(){
   detail.innerHTML = `<div class="report-block">After Season ${hEntry.seasonNum}: Free Agency threshold was <b>${rep.threshold.toFixed(2)}</b>, ${rep.faCount} players entered the pool.</div><div class="log">${rows}</div>`;
 }
 
+// ---- Inaugural draft gate (pre-season-1 only) ----
+function renderDraftGate(){
+  const el = document.getElementById('draft-gate-content');
+  if(!league.draft){
+    el.innerHTML = `
+      <h2>Run the draft</h2>
+      <div class="report-block">
+        96 players, 16 teams. Each player's draft value is (Off + Def) &times; a random
+        1.00&ndash;2.00 multiplier. Draft order is randomized, then it's a straight snake draft
+        from highest value to lowest until every team has 6 players.
+      </div>
+      <button class="btn" onclick="startDraft()">Start Draft</button>
+    `;
+    return;
+  }
+  const d = league.draft;
+  const nextPick = d.picks[d.nextPickIndex];
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+      <h2 style="margin-bottom:0;">Draft in progress</h2>
+      <div class="dim" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;">Pick ${d.nextPickIndex+1} of ${d.picks.length} &middot; Round ${nextPick.round}</div>
+    </div>
+    <div class="btn-row" style="margin-bottom:14px;">
+      <button class="btn small" onclick="draftNextPickBtn()">Next pick — on the clock: ${teamText(nextPick.teamId)}</button>
+      <button class="btn secondary small" onclick="draftNextRoundBtn()">Next round</button>
+      <button class="btn secondary small" onclick="draftSkipToEndBtn()">Sim rest of draft</button>
+    </div>
+    <div class="two-col">
+      <div>
+        <h2 style="font-size:14px;margin-bottom:6px;">Picks so far</h2>
+        <div class="log" id="draft-live-log" style="max-height:360px;"></div>
+      </div>
+      <div>
+        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(ranked by base Off+Def)</span></h2>
+        <div class="log" id="draft-board-list" style="max-height:360px;"></div>
+      </div>
+    </div>
+  `;
+  const logEl = document.getElementById('draft-live-log');
+  logEl.innerHTML = d.picks.slice(0, d.nextPickIndex).map(pk=>
+    `<div class="log-entry">R${pk.round} P${pk.pick} — ${teamText(pk.teamId)} select <b>${escapeHtml(league.players[pk.playerId].name)}</b> <span class="dim">(value ${pk.value.toFixed(1)})</span></div>`
+  ).join('') || '<div class="dim">No picks yet.</div>';
+  logEl.scrollTop = logEl.scrollHeight;
+
+  const board = Object.values(league.players).filter(p=>!p.teamId)
+    .sort((a,b)=> (b.baseOff+b.baseDef)-(a.baseOff+a.baseDef));
+  document.getElementById('draft-board-list').innerHTML = board.map(p=>
+    `<div class="log-entry">${escapeHtml(p.name)} <span class="dim">— G${p.grade}, ${p.baseOff}/${p.baseDef} (${p.baseOff+p.baseDef})</span></div>`
+  ).join('') || '<div class="dim">Board is empty.</div>';
+}
+
 // ---- Master render ----
 function render(){
   if(!league.draftDone){
     document.getElementById('draft-gate').classList.remove('hidden');
     document.getElementById('app-root').classList.add('hidden');
+    renderDraftGate();
     return;
   }
   document.getElementById('draft-gate').classList.add('hidden');
