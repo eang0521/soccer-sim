@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Six-a-side — dice soccer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --turf-dark:#0f3320;
+    --turf-light:#154027;
+    --chalk:#eef2e8;
+    --chalk-dim:#b9c4b3;
+    --amber:#e8b23c;
+    --home:#b10202;
+    --home-rgb:177,2,2;
+    --home-dim:#3a211d;
+    --away:#0a53a8;
+    --away-rgb:10,83,168;
+    --away-dim:#1c2b3d;
+    --ink:#081a10;
+    --card:#123422;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:
+      repeating-linear-gradient(90deg, var(--turf-dark) 0 60px, var(--turf-light) 60px 120px);
+    color:var(--chalk);
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  h1,h2,h3{font-family:'Anton',sans-serif; font-weight:400; letter-spacing:.03em; margin:0;}
+  .wrap{max-width:880px;margin:0 auto;}
+  .title{
+    text-align:center;
+    font-size:38px;
+    color:var(--chalk);
+    text-shadow:0 2px 0 rgba(0,0,0,.35);
+    margin-bottom:4px;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--chalk-dim);
+    font-size:14px;
+    margin-bottom:28px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid rgba(238,242,232,.12);
+    border-radius:10px;
+    padding:20px 22px;
+    margin-bottom:20px;
+  }
+  .card h2{font-size:22px;margin-bottom:14px;}
+  .rules-toggle{
+    cursor:pointer;
+    color:var(--amber);
+    font-size:13px;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    user-select:none;
+  }
+  .rules-body{
+    font-size:14px;
+    line-height:1.65;
+    color:var(--chalk-dim);
+    margin-top:12px;
+    display:none;
+  }
+  .rules-body.open{display:block;}
+  .rules-body b{color:var(--chalk);}
+  .team-block{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media (max-width:640px){.team-block{grid-template-columns:1fr;}}
+  .name-row{display:flex;align-items:center;margin-bottom:12px;}
+  .team-name-input{
+    flex:1;
+    font-family:'Anton',sans-serif;
+    font-size:20px;
+    background:transparent;
+    border:none;
+    border-bottom:2px solid rgba(238,242,232,.25);
+    color:var(--chalk);
+    padding:6px 2px;
+    letter-spacing:.02em;
+  }
+  .team-name-input.home{border-color:var(--home);}
+  .team-name-input.away{border-color:var(--away);}
+  .team-name-input:focus{outline:none;}
+  .player-row{
+    display:grid;
+    grid-template-columns:26px 1fr 56px 56px;
+    gap:6px;
+    align-items:center;
+    margin-bottom:6px;
+    font-size:13px;
+  }
+  .player-row .tag{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--chalk-dim);
+    font-size:11px;
+  }
+  .player-row input[type=text]{
+    background:rgba(238,242,232,.06);
+    border:1px solid rgba(238,242,232,.15);
+    border-radius:5px;
+    color:var(--chalk);
+    padding:6px 8px;
+    font-size:13px;
+    font-family:'Inter',sans-serif;
+  }
+  .player-row input[type=number]{
+    background:rgba(238,242,232,.06);
+    border:1px solid rgba(238,242,232,.15);
+    border-radius:5px;
+    color:var(--chalk);
+    padding:6px 4px;
+    font-size:13px;
+    width:100%;
+    text-align:center;
+  }
+  .formation-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+    font-size:13px;
+  }
+  .formation-row label{color:var(--chalk-dim);text-transform:uppercase;letter-spacing:.05em;font-size:11px;}
+  .formation-row select{
+    background:rgba(238,242,232,.08);
+    border:1px solid rgba(238,242,232,.2);
+    color:var(--chalk);
+    border-radius:6px;
+    padding:5px 8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+  }
+  .formation-row .fbreak{
+    color:var(--chalk-dim);
+    font-size:11px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .paste-toggle{
+    cursor:pointer;
+    color:var(--amber);
+    font-size:12px;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    user-select:none;
+    margin-bottom:8px;
+    display:inline-block;
+  }
+  .paste-box{display:none;margin-bottom:12px;}
+  .paste-box.open{display:block;}
+  .paste-box textarea{
+    width:100%;
+    min-height:90px;
+    background:rgba(238,242,232,.06);
+    border:1px solid rgba(238,242,232,.18);
+    border-radius:6px;
+    color:var(--chalk);
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    padding:8px;
+    resize:vertical;
+  }
+  .paste-box .hint{font-size:11px;color:var(--chalk-dim);margin:4px 0 8px;}
+  .paste-status{font-size:11px;color:var(--chalk-dim);margin-top:4px;font-family:'JetBrains Mono',monospace;}
+  .color-picker-wrap{position:relative;display:inline-block;margin-left:8px;vertical-align:middle;}
+  .color-swatch-btn{
+    width:22px;height:22px;border-radius:50%;
+    border:2px solid rgba(238,242,232,.5);
+    cursor:pointer;padding:0;
+    box-shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+  .color-picker-grid{
+    display:none;
+    position:absolute;
+    top:28px;left:0;
+    z-index:20;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    background:var(--ink);
+    border:1px solid rgba(238,242,232,.2);
+    border-radius:8px;
+    padding:10px;
+    width:150px;
+    box-shadow:0 6px 20px rgba(0,0,0,.5);
+  }
+  .color-picker-grid.open{display:grid;}
+  .color-swatch-opt{
+    width:28px;height:28px;border-radius:50%;
+    border:2px solid rgba(238,242,232,.25);
+    cursor:pointer;padding:0;
+  }
+  .color-swatch-opt:hover{border-color:var(--chalk);}
+  .col-head{
+    display:grid;
+    grid-template-columns:26px 1fr 56px 56px;
+    gap:6px;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--chalk-dim);
+    margin-bottom:6px;
+  }
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    background:var(--amber);
+    color:#2a1c04;
+    border:none;
+    border-radius:7px;
+    padding:12px 20px;
+    cursor:pointer;
+    letter-spacing:.02em;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn.secondary{
+    background:transparent;
+    color:var(--chalk);
+    border:1px solid rgba(238,242,232,.35);
+  }
+  .btn.small{padding:8px 14px;font-size:13px;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+  .scoreboard{
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+    gap:14px;
+    margin-bottom:22px;
+  }
+  .team-score{text-align:center;}
+  .team-score .name{font-size:15px;color:var(--chalk-dim);margin-bottom:4px;letter-spacing:.03em;}
+  .team-score.home .name{color:var(--home);}
+  .team-score.away .name{color:var(--away);}
+  .team-score .score{font-family:'Anton',sans-serif;font-size:52px;line-height:1;}
+  .clock{
+    font-family:'JetBrains Mono',monospace;
+    font-size:20px;
+    background:var(--ink);
+    border:1px solid rgba(238,242,232,.15);
+    border-radius:8px;
+    padding:10px 16px;
+    text-align:center;
+  }
+  .clock .lbl{font-size:9px;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:.08em;}
+  .pitch{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:3px;
+    margin-bottom:10px;
+    position:relative;
+  }
+  .zone{
+    background:rgba(238,242,232,.05);
+    border:1px solid rgba(238,242,232,.15);
+    border-radius:6px;
+    padding:14px 4px 30px;
+    text-align:center;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--chalk-dim);
+    position:relative;
+    min-height:64px;
+  }
+  .zone.atk-home{background:rgba(var(--home-rgb),.14);border-color:rgba(var(--home-rgb),.4);}
+  .zone.atk-away{background:rgba(var(--away-rgb),.14);border-color:rgba(var(--away-rgb),.4);}
+  .ball{
+    position:absolute;
+    bottom:8px;
+    left:50%;
+    transform:translateX(-50%);
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 0 3px rgba(232,178,60,.25);
+    transition:left .25s ease;
+  }
+  .poss-arrow{
+    font-size:16px;
+    margin-top:2px;
+  }
+  .poss-arrow.home{color:var(--home);}
+  .poss-arrow.away{color:var(--away);}
+  .log{
+    max-height:260px;
+    overflow-y:auto;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    line-height:1.9;
+    background:var(--ink);
+    border-radius:8px;
+    padding:12px 16px;
+  }
+  .log-entry{border-bottom:1px solid rgba(238,242,232,.06);padding:3px 0;}
+  .log-entry:last-child{border-bottom:none;}
+  .log-entry .min{color:var(--amber);margin-right:8px;}
+  .log-entry.goal{color:var(--amber);font-weight:600;}
+  .who{font-weight:600;}
+  .hidden{display:none;}
+  .final-banner{
+    text-align:center;
+    font-family:'Anton',sans-serif;
+    font-size:22px;
+    color:var(--amber);
+    margin-bottom:16px;
+    letter-spacing:.03em;
+  }
+  .zone-legend{
+    display:flex;justify-content:space-between;
+    font-size:10px;color:var(--chalk-dim);
+    text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:6px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">Six-a-side</div>
+  <div class="subtitle">a dice-based soccer simulator</div>
+
+  <div class="card" id="setup-card">
+    <div class="rules-toggle" onclick="toggleRules()">How does this work?</div>
+    <div class="rules-body" id="rules-body">
+      The pitch is five fixed zones, left to right: <b>Attacking Third — Middle Third — Center
+      Circle — Middle Third — Attacking Third</b>. Each Attacking Third is one team's shooting
+      zone <i>and</i> the other team's own defensive zone at the same time — whichever end it is
+      depends on who's attacking through it. Ratings run <b>0–10</b>, weighted like a 2d6−2
+      roll — most players cluster around 5, with 0 or 10 rare — so hitting "Randomize ratings"
+      gives you a realistic-looking talent spread. Player 1 on each roster is the goalkeeper —
+      only their Def rating matters while they're between the posts, but you can still give them
+      an Off rating too, in case you (or "Auto-formation") decide they're better used
+      elsewhere and move someone else into goal.
+      <br><br>
+      <b>Who's involved.</b> In a Middle Third or the Center Circle, each side puts forward one
+      random player, weighted by position: the attacking side is weighted toward <b>Forwards</b>
+      (Forward × 3, Midfielder × 2, Defender × 1), the defending side toward <b>Defenders</b>
+      (Defender × 3, Midfielder × 2, Forward × 1) — so an out-of-position player can always get
+      pulled into a contest, just less often. Reaching an <b>Attacking Third</b> works the same
+      way for the entry duel, and once through, the shot itself uses that <i>same</i> weighted
+      pick again — any position can end up taking the shot, just Forwards are still most likely
+      to be the one there — against the defending <b>goalkeeper</b>.
+      <br><br>
+      <b>The roll.</b> Both players roll <b>1d20 + their rating</b> (Off for the attacking
+      player, Def for the defending player) and compare totals. Your <b>formation</b> (2-2-1,
+      2-1-2, 3-1-1, 1-3-1) sets how many players you have at each position, which shifts the odds
+      of who gets picked. There are two rating bonuses: the <b>goalkeeper's Def gets +50%
+      (rounded down)</b> on the shot, and a <b>Midfielder's rating gets that same +50% boost
+      whenever the ball is in the Center Circle</b> — the one zone that's genuinely theirs, so
+      stacking midfielders actually buys you something specific, not just a generic split
+      between attack and defense. Higher total wins: in a Middle Third or Center
+      Circle contest, winning
+      advances the ball a zone, a tie leaves it contested in place, and losing is a turnover. In
+      the Attacking Third, winning the entry duel puts the attacker in the box to face the
+      keeper next; winning the shot duel is a <b>goal</b> — the ball resets to the Center Circle
+      and the scoring team kicks off... to the team that just conceded. If a <b>Defender</b>
+      wins the entry duel, they just win the ball back — it stays put in that same third, so the
+      team that just turned it over now has to work it all the way back out themselves. Only a
+      <b>goalkeeper's save</b> actually clears the ball out to the neighboring Middle Third. A
+      tie at either step just means the attack stays alive and tries again next minute.
+      <br><br>
+      <b>Extra time and penalties.</b> If the checkbox is on and the match is level at full
+      time, it goes to two 7-minute periods of extra time (with a halftime swap between them,
+      and a fresh coin flip for who kicks off — same as regulation). Still level after that? It
+      goes to a shootout. Kicking order for each team is all <b>6 players ranked by Off,
+      highest first</b> — goalkeepers included, so a goalkeeper with a big Off rating can end up
+      taking an early penalty. Each shot is the kicker's <b>Off +50%</b> against the defending
+      goalkeeper's plain Def — no bonus for the keeper, since penalties are normally hard to
+      stop. The base round is the usual <b>5 kicks</b> per side (ending early the moment a team
+      can no longer mathematically catch up, same as a real shootout) — the 6th, lowest-Off
+      player only steps up if it's still level after those 5. If it goes past that, both sides
+      just cycle back through the same order, starting from the highest Off again, for sudden
+      death.
+    </div>
+  </div>
+
+  <div class="card" id="roster-card">
+    <div class="team-block">
+      <div>
+        <div class="name-row">
+          <input class="team-name-input home" id="home-name" value="Red XI" maxlength="18">
+          <div class="color-picker-wrap">
+            <button type="button" class="color-swatch-btn" id="home-color-btn" style="background:#b10202" onclick="toggleColorPicker('home')" title="Team color"></button>
+            <div class="color-picker-grid" id="home-color-grid"></div>
+          </div>
+        </div>
+        <div class="formation-row">
+          <label>Formation</label>
+          <select id="home-formation" onchange="applyFormation('home')">
+            <option value="2-2-1">2-2-1</option>
+            <option value="2-1-2">2-1-2</option>
+            <option value="3-1-1">3-1-1</option>
+            <option value="1-3-1">1-3-1</option>
+          </select>
+          <span class="fbreak" id="home-formation-summary"></span>
+        </div>
+        <div class="col-head"><span></span><span>Player</span><span>Off</span><span>Def</span></div>
+        <div id="home-players"></div>
+        <div class="paste-toggle" onclick="togglePaste('home')">Paste roster</div>
+        <div class="paste-box" id="home-paste-box">
+          <div class="hint">One player per line: name, then Off, then Def — tab or space separated.</div>
+          <textarea id="home-paste-text" placeholder="Elijah&#9;8&#9;9&#10;Toby&#9;6&#9;10&#10;Joey A&#9;7&#9;8"></textarea>
+          <div class="btn-row">
+            <button class="btn secondary small" onclick="importRoster('home')">Import</button>
+          </div>
+          <div class="paste-status" id="home-paste-status"></div>
+        </div>
+      </div>
+      <div>
+        <div class="name-row">
+          <input class="team-name-input away" id="away-name" value="Blue XI" maxlength="18">
+          <div class="color-picker-wrap">
+            <button type="button" class="color-swatch-btn" id="away-color-btn" style="background:#0a53a8" onclick="toggleColorPicker('away')" title="Team color"></button>
+            <div class="color-picker-grid" id="away-color-grid"></div>
+          </div>
+        </div>
+        <div class="formation-row">
+          <label>Formation</label>
+          <select id="away-formation" onchange="applyFormation('away')">
+            <option value="2-2-1">2-2-1</option>
+            <option value="2-1-2">2-1-2</option>
+            <option value="3-1-1">3-1-1</option>
+            <option value="1-3-1">1-3-1</option>
+          </select>
+          <span class="fbreak" id="away-formation-summary"></span>
+        </div>
+        <div class="col-head"><span></span><span>Player</span><span>Off</span><span>Def</span></div>
+        <div id="away-players"></div>
+        <div class="paste-toggle" onclick="togglePaste('away')">Paste roster</div>
+        <div class="paste-box" id="away-paste-box">
+          <div class="hint">One player per line: name, then Off, then Def — tab or space separated.</div>
+          <textarea id="away-paste-text" placeholder="Elijah&#9;8&#9;9&#10;Toby&#9;6&#9;10&#10;Joey A&#9;7&#9;8"></textarea>
+          <div class="btn-row">
+            <button class="btn secondary small" onclick="importRoster('away')">Import</button>
+          </div>
+          <div class="paste-status" id="away-paste-status"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="startMatch()">Kick off</button>
+      <button class="btn secondary small" onclick="randomizeRatings()">Randomize ratings</button>
+      <button class="btn secondary small" onclick="autoFormationBoth()">Auto-formation (mutual)</button>
+      <button class="btn secondary small" onclick="predictScore()">Predict score</button>
+    </div>
+    <div style="margin-top:10px; font-size:13px; color:var(--chalk-dim); display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="et-toggle" checked style="width:16px;height:16px;">
+      <label for="et-toggle">Extra time (2×7 min) + penalties if the match is tied at full time</label>
+    </div>
+    <div id="optimize-status" style="font-size:12px;color:var(--chalk-dim);margin-top:8px;font-family:'JetBrains Mono',monospace;"></div>
+    <div id="predict-status" style="font-size:13px;color:var(--chalk-dim);margin-top:10px;font-family:'JetBrains Mono',monospace;line-height:1.7;"></div>
+  </div>
+
+  <div class="hidden" id="match-card">
+    <div class="card">
+      <div class="scoreboard">
+        <div class="team-score home"><div class="name" id="sb-home-name">Red XI</div><div class="score" id="sb-home-score">0</div></div>
+        <div class="clock"><div class="lbl" id="clock-lbl">Clock</div><div id="sb-clock">0:00</div></div>
+        <div class="team-score away"><div class="name" id="sb-away-name">Blue XI</div><div class="score" id="sb-away-score">0</div></div>
+      </div>
+      <div id="pitch-section">
+        <div class="zone-legend">
+          <span id="lbl-away-atk">Blue Attacking Third</span><span>Middle Third</span><span>Center Circle</span><span>Middle Third</span><span id="lbl-home-atk">Red Attacking Third</span>
+        </div>
+        <div class="pitch" id="pitch"></div>
+        <div style="text-align:center;font-size:12px;color:var(--chalk-dim);margin-bottom:16px;" id="poss-line">Kickoff</div>
+      </div>
+      <div id="penalty-panel" class="hidden" style="margin-bottom:16px;">
+        <div style="text-align:center;font-size:13px;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Penalty shootout</div>
+        <div id="penalty-marks" style="display:flex;justify-content:center;gap:16px;margin-bottom:10px;"></div>
+        <div id="penalty-log" style="font-size:12px;color:var(--chalk-dim);max-height:120px;overflow-y:auto;"></div>
+      </div>
+      <div id="final-banner" class="final-banner hidden"></div>
+      <div class="btn-row" style="justify-content:center;margin-bottom:16px;">
+        <button class="btn" id="btn-next" onclick="stepMinute()">Advance 15s</button>
+        <button class="btn secondary" id="btn-chance" onclick="simUntilChance()">Sim until next chance</button>
+        <button class="btn secondary" id="btn-sim" onclick="simRest()">Simulate rest of match</button>
+        <button class="btn secondary" onclick="resetMatch()">New match</button>
+      </div>
+      <div id="scorers-panel" style="margin-bottom:14px; font-size:13px;">
+        <div style="text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:var(--chalk-dim);margin-bottom:6px;">Scorers</div>
+        <div id="scorers-list" style="color:var(--chalk-dim);">No goals yet.</div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleRules(){document.getElementById('rules-body').classList.toggle('open');}
+
+const defaultRatings = [
+  [6,7],[5,4],[7,3],[3,7],[8,2],[2,8]
+];
+
+const formationCounts = {
+  '2-2-1':{defender:2, midfielder:2, forward:1},
+  '2-1-2':{defender:2, midfielder:1, forward:2},
+  '3-1-1':{defender:3, midfielder:1, forward:1},
+  '1-3-1':{defender:1, midfielder:3, forward:1}
+};
+const positionAbbr = {defender:'D', midfielder:'M', forward:'F'};
+
+function buildRosterInputs(teamKey){
+  const container = document.getElementById(teamKey+'-players');
+  container.innerHTML='';
+  for(let i=0;i<6;i++){
+    const row=document.createElement('div');
+    row.className='player-row';
+    row.id=`${teamKey}-row-${i}`;
+    const isGK = i===0;
+    row.innerHTML = `
+      <span class="tag" id="${teamKey}-tag-${i}">${isGK? 'GK':'P'+(i+1)}</span>
+      <input type="text" id="${teamKey}-name-${i}" value="${isGK? 'Keeper':'Player '+(i+1)}">
+      <input type="number" id="${teamKey}-off-${i}" min="0" max="10" value="${defaultRatings[i][0]}">
+      <input type="number" id="${teamKey}-def-${i}" min="0" max="10" value="${isGK? 8 : defaultRatings[i][1]}">
+    `;
+    container.appendChild(row);
+  }
+}
+buildRosterInputs('home');
+buildRosterInputs('away');
+
+function positionForSlot(formationKey, slotIndex){
+  const counts = formationCounts[formationKey];
+  const order = [['defender',counts.defender],['midfielder',counts.midfielder],['forward',counts.forward]];
+  let idx = slotIndex;
+  for(const [pos,count] of order){
+    if(idx<count) return pos;
+    idx-=count;
+  }
+  return 'forward';
+}
+
+function applyFormation(teamKey){
+  const formationKey = document.getElementById(`${teamKey}-formation`).value;
+  const counts = formationCounts[formationKey];
+  document.getElementById(`${teamKey}-formation-summary`).textContent =
+    `D${counts.defender} · M${counts.midfielder} · F${counts.forward}`;
+  for(let i=1;i<6;i++){
+    const pos = positionForSlot(formationKey, i-1);
+    const posSlotNumber = countSlotNumber(formationKey, i-1, pos);
+    document.getElementById(`${teamKey}-tag-${i}`).textContent = `${positionAbbr[pos]}${posSlotNumber}`;
+  }
+}
+function countSlotNumber(formationKey, slotIndex, pos){
+  let n=0;
+  for(let s=0;s<=slotIndex;s++){
+    if(positionForSlot(formationKey,s)===pos) n++;
+  }
+  return n;
+}
+applyFormation('home');
+applyFormation('away');
+
+// 16-color team palette — 8 hue families, each with a light and dark variant.
+const TEAM_COLORS = [
+  {name:'Rocky Rangers',       hex:'#e6e6e6'},
+  {name:'Northern Nationals',  hex:'#ffcfc9'},
+  {name:'Southern Saints',     hex:'#ffc8aa'},
+  {name:'Pacific Pirates',     hex:'#ffe5a0'},
+  {name:'Eastern Eagles',      hex:'#d4edbc'},
+  {name:'Gulf Guardians',      hex:'#bfe1f6'},
+  {name:'Western Warriors',    hex:'#c6dbe1'},
+  {name:'Atlantic Angels',     hex:'#e6cff2'},
+  {name:'Midwest Mavericks',   hex:'#3d3d3d'},
+  {name:'Coastal Cardinals',   hex:'#b10202'},
+  {name:'Sierra Suns',         hex:'#753800'},
+  {name:'Desert Diamondbacks', hex:'#473822'},
+  {name:'Central Celtics',     hex:'#11734b'},
+  {name:'Canyon Cubs',         hex:'#0a53a8'},
+  {name:'Prairie Panthers',    hex:'#215a6c'},
+  {name:'Valley Vikings',      hex:'#5a3286'}
+];
+function hexToRgbTriplet(hex){
+  const v = hex.replace('#','');
+  return `${parseInt(v.slice(0,2),16)},${parseInt(v.slice(2,4),16)},${parseInt(v.slice(4,6),16)}`;
+}
+function buildColorGrid(teamKey){
+  const grid = document.getElementById(`${teamKey}-color-grid`);
+  grid.innerHTML = TEAM_COLORS.map(c=>
+    `<button type="button" class="color-swatch-opt" style="background:${c.hex}" title="${c.name}" onclick="setTeamColor('${teamKey}','${c.hex}')"></button>`
+  ).join('');
+}
+buildColorGrid('home');
+buildColorGrid('away');
+
+function toggleColorPicker(teamKey){
+  const other = teamKey==='home' ? 'away' : 'home';
+  document.getElementById(`${other}-color-grid`).classList.remove('open');
+  document.getElementById(`${teamKey}-color-grid`).classList.toggle('open');
+}
+function setTeamColor(teamKey, hex){
+  const varName = teamKey==='home' ? '--home' : '--away';
+  document.documentElement.style.setProperty(varName, hex);
+  document.documentElement.style.setProperty(varName+'-rgb', hexToRgbTriplet(hex));
+  document.getElementById(`${teamKey}-color-btn`).style.background = hex;
+  document.getElementById(`${teamKey}-color-grid`).classList.remove('open');
+}
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.color-picker-wrap')){
+    document.querySelectorAll('.color-picker-grid').forEach(g=>g.classList.remove('open'));
+  }
+});
+
+function togglePaste(teamKey){
+  document.getElementById(`${teamKey}-paste-box`).classList.toggle('open');
+}
+
+function stripQuotes(s){
+  return s.trim().replace(/^[\"'\u201C\u201D\u2018\u2019]+/, '').replace(/[\"'\u201C\u201D\u2018\u2019]+$/, '').trim();
+}
+
+function parseRosterPaste(text){
+  const lines = text.split('\n').map(l=>stripQuotes(l)).filter(l=>l.length>0);
+  const players=[];
+  for(const line of lines){
+    let parts = line.split('\t').map(p=>stripQuotes(p)).filter(p=>p.length>0);
+    if(parts.length<3){
+      const tokens = line.trim().split(/\s+/).map(t=>stripQuotes(t));
+      if(tokens.length>=3){
+        const off = tokens[tokens.length-2];
+        const def = tokens[tokens.length-1];
+        const name = tokens.slice(0, tokens.length-2).join(' ');
+        parts = [stripQuotes(name), off, def];
+      }
+    }
+    if(parts.length>=3 && !isNaN(parseFloat(parts[1])) && !isNaN(parseFloat(parts[2]))){
+      players.push({name:parts[0], off:clampRating(parts[1]), def:clampRating(parts[2])});
+    }
+  }
+  return players;
+}
+
+function importRoster(teamKey){
+  const text = document.getElementById(`${teamKey}-paste-text`).value;
+  const players = parseRosterPaste(text);
+  const statusEl = document.getElementById(`${teamKey}-paste-status`);
+  if(players.length===0){
+    statusEl.textContent = 'No valid lines found — expected "Name  Off  Def" per line.';
+    return;
+  }
+  const n = Math.min(players.length, 6);
+  for(let i=0;i<n;i++){
+    document.getElementById(`${teamKey}-name-${i}`).value = players[i].name;
+    document.getElementById(`${teamKey}-off-${i}`).value = players[i].off;
+    document.getElementById(`${teamKey}-def-${i}`).value = players[i].def;
+  }
+  if(players.length===6){
+    statusEl.textContent = `Imported all 6 players. First line (${players[0].name}) is the goalkeeper.`;
+  } else if(players.length<6){
+    statusEl.textContent = `Imported ${players.length} of 6 — fill in the remaining ${6-players.length} row(s) manually.`;
+  } else {
+    statusEl.textContent = `Found ${players.length} lines — only used the first 6. First line (${players[0].name}) is the goalkeeper.`;
+  }
+}
+
+function randomizeRatings(){
+  ['home','away'].forEach(teamKey=>{
+    for(let i=0;i<6;i++){
+      document.getElementById(`${teamKey}-off-${i}`).value = d6()+d6()-2;
+      document.getElementById(`${teamKey}-def-${i}`).value = d6()+d6()-2;
+    }
+  });
+}
+
+function combinations(items, k){
+  const results=[];
+  function helper(start, combo){
+    if(combo.length===k){ results.push(combo.slice()); return; }
+    for(let i=start;i<items.length;i++){
+      combo.push(items[i]);
+      helper(i+1, combo);
+      combo.pop();
+    }
+  }
+  helper(0, []);
+  return results;
+}
+
+// Exhaustively scores every (goalkeeper choice, formation, D/M/F assignment) using the
+// exact expected-goal-differential against the CURRENT opponent roster (via computeExpectedGoals),
+// so this automatically accounts for real zone frequency and the Center Circle Midfielder bonus —
+// not just a flat per-position heuristic.
+function optimizeFormation(teamKey){
+  const oppKey = teamKey==='home' ? 'away' : 'home';
+  const opponentTeam = {name: document.getElementById(`${oppKey}-name`).value, ...readRoster(oppKey)};
+
+  const all=[];
+  for(let i=0;i<6;i++){
+    all.push({
+      name: document.getElementById(`${teamKey}-name-${i}`).value || ('Player '+(i+1)),
+      off: clampRating(document.getElementById(`${teamKey}-off-${i}`).value),
+      def: clampRating(document.getElementById(`${teamKey}-def-${i}`).value)
+    });
+  }
+
+  let best=null;
+  for(let gkIdx=0; gkIdx<6; gkIdx++){
+    const gk = all[gkIdx];
+    const outfield = all.filter((_,i)=>i!==gkIdx);
+    const idxs=[0,1,2,3,4];
+
+    for(const formationKey of Object.keys(formationCounts)){
+      const counts = formationCounts[formationKey];
+      const dCombos = combinations(idxs, counts.defender);
+      for(const dCombo of dCombos){
+        const restAfterD = idxs.filter(i=>!dCombo.includes(i));
+        const mCombos = combinations(restAfterD, counts.midfielder);
+        for(const mCombo of mCombos){
+          const fCombo = restAfterD.filter(i=>!mCombo.includes(i));
+          const dGroup=dCombo.map(i=>outfield[i]);
+          const mGroup=mCombo.map(i=>outfield[i]);
+          const fGroup=fCombo.map(i=>outfield[i]);
+
+          const candidateTeam = {
+            players: [
+              {...gk, position:'goalkeeper', isGK:true},
+              ...dGroup.map(p=>({...p, position:'defender', isGK:false})),
+              ...mGroup.map(p=>({...p, position:'midfielder', isGK:false})),
+              ...fGroup.map(p=>({...p, position:'forward', isGK:false}))
+            ]
+          };
+          const {expA, expB} = computeExpectedGoals(candidateTeam, opponentTeam);
+          const {pHomeWin, pDraw} = computeMatchProbabilities(expA, expB);
+          const score = pHomeWin + 0.5*pDraw;
+
+          if(!best || score>best.score){
+            best={score, winProb:pHomeWin, drawProb:pDraw, expFor:expA, expAgainst:expB, gk, dGroup, mGroup, fGroup, formation:formationKey};
+          }
+        }
+      }
+    }
+  }
+
+  const order=[best.gk, ...best.dGroup, ...best.mGroup, ...best.fGroup];
+  for(let i=0;i<6;i++){
+    document.getElementById(`${teamKey}-name-${i}`).value = order[i].name;
+    document.getElementById(`${teamKey}-off-${i}`).value = order[i].off;
+    document.getElementById(`${teamKey}-def-${i}`).value = order[i].def;
+  }
+  document.getElementById(`${teamKey}-formation`).value = best.formation;
+  applyFormation(teamKey);
+  return best;
+}
+
+function lineupFingerprint(result){
+  return `${result.formation}|GK:${result.gk.name}|D:${result.dGroup.map(p=>p.name).join(',')}`+
+         `|M:${result.mGroup.map(p=>p.name).join(',')}|F:${result.fGroup.map(p=>p.name).join(',')}`;
+}
+
+// Alternating best-response: optimize Home against Away's current lineup, then Away against
+// Home's new lineup, and repeat. Stops as soon as neither team's arrangement changed in a full
+// round (a fixed point — a mutual best response to each other), or after maxRounds as a safety
+// cap in case the two best-responses cycle instead of settling.
+function mutualOptimize(maxRounds=6){
+  let prevHomeFp=null, prevAwayFp=null, h, a;
+  let round=0;
+  for(round=1; round<=maxRounds; round++){
+    h = optimizeFormation('home');
+    a = optimizeFormation('away');
+    const hFp = lineupFingerprint(h), aFp = lineupFingerprint(a);
+    if(hFp===prevHomeFp && aFp===prevAwayFp){
+      return {h, a, rounds:round, converged:true};
+    }
+    prevHomeFp = hFp; prevAwayFp = aFp;
+  }
+  return {h, a, rounds:maxRounds, converged:false};
+}
+
+function autoFormationBoth(){
+  const {h, a, rounds, converged} = mutualOptimize();
+  const convergeNote = converged
+    ? `converged after ${rounds} round${rounds>1?'s':''}`
+    : `stopped after ${rounds} rounds (still adjusting — best-responses may be cycling)`;
+  document.getElementById('optimize-status').innerHTML =
+    `Mutually optimized for win probability (${convergeNote}) — <span style="color:var(--home)">${document.getElementById('home-name').value}</span>: `+
+    `${h.formation}, GK ${h.gk.name} (${(h.winProb*100).toFixed(1)}% win / ${(h.drawProb*100).toFixed(1)}% draw, xG ${h.expFor.toFixed(2)}–${h.expAgainst.toFixed(2)}) · `+
+    `<span style="color:var(--away)">${document.getElementById('away-name').value}</span>: `+
+    `${a.formation}, GK ${a.gk.name} (${(a.winProb*100).toFixed(1)}% win / ${(a.drawProb*100).toFixed(1)}% draw, xG ${a.expFor.toFixed(2)}–${a.expAgainst.toFixed(2)})`;
+}
+
+// --- Exact score prediction: closed-form matchup odds + Markov propagation, no sampling ---
+
+const _contestProbsCache = new Map();
+function contestProbs(off, def){
+  const key = off+','+def;
+  if(_contestProbsCache.has(key)) return _contestProbsCache.get(key);
+  let winA=0, tie=0, winD=0;
+  for(let a=1;a<=20;a++){
+    const aTotal=a+off;
+    for(let d=1;d<=20;d++){
+      const dTotal=d+def;
+      if(aTotal>dTotal) winA++; else if(dTotal>aTotal) winD++; else tie++;
+    }
+  }
+  const result = {winA:winA/400, tie:tie/400, winD:winD/400};
+  _contestProbsCache.set(key, result);
+  return result;
+}
+function mixContest(attackers, defenders){
+  const totalA = attackers.reduce((s,x)=>s+x.weight,0);
+  const totalD = defenders.reduce((s,x)=>s+x.weight,0);
+  let winA=0, tie=0, winD=0;
+  for(const a of attackers){
+    const pa=a.weight/totalA;
+    for(const d of defenders){
+      const pd=d.weight/totalD;
+      const c=contestProbs(a.off, d.def);
+      winA+=pa*pd*c.winA; tie+=pa*pd*c.tie; winD+=pa*pd*c.winD;
+    }
+  }
+  return {winA,tie,winD};
+}
+function generalContestProbs(teamObj, oppObj){
+  const attackers = teamObj.players.filter(p=>!p.isGK).map(p=>({off:p.off, weight:attackWeight[p.position]}));
+  const defenders = oppObj.players.filter(p=>!p.isGK).map(p=>({def:p.def, weight:defenseWeight[p.position]}));
+  return mixContest(attackers, defenders);
+}
+function centerContestProbs(teamObj, oppObj){
+  const attackers = teamObj.players.filter(p=>!p.isGK).map(p=>({
+    off: p.position==='midfielder' ? boost(p.off) : p.off, weight:attackWeight[p.position]
+  }));
+  const defenders = oppObj.players.filter(p=>!p.isGK).map(p=>({
+    def: p.position==='midfielder' ? boost(p.def) : p.def, weight:defenseWeight[p.position]
+  }));
+  return mixContest(attackers, defenders);
+}
+function shotContestProbs(teamObj, oppObj){
+  const attackers = teamObj.players.filter(p=>!p.isGK).map(p=>({off:p.off, weight:attackWeight[p.position]}));
+  const gk = keeperOf(oppObj);
+  return mixContest(attackers, [{def:boost(gk.def), weight:1}]);
+}
+function poissonPMFArray(lambda, cap){
+  const arr = new Float64Array(cap+1);
+  arr[0] = Math.exp(-lambda);
+  for(let k=1; k<=cap; k++){ arr[k] = arr[k-1] * lambda / k; }
+  return arr;
+}
+// Win/draw/loss + full scoreline distribution from two expected-goals values, via independent
+// Poisson (see predictScore's explanation for why). Grid size scales with how large either
+// side's expected goals actually is, so lopsided matches don't get silently truncated.
+function computeMatchProbabilities(expHome, expAway){
+  const maxExp = Math.max(expHome, expAway, 1);
+  const CAP = Math.max(15, Math.ceil(maxExp + 6*Math.sqrt(maxExp) + 5));
+  const pmfHome = poissonPMFArray(expHome, CAP);
+  const pmfAway = poissonPMFArray(expAway, CAP);
+  let pHomeWin=0, pDraw=0, pAwayWin=0;
+  const scoreProbs=[];
+  for(let h=0; h<=CAP; h++){
+    const ph=pmfHome[h];
+    for(let a=0; a<=CAP; a++){
+      const pa=pmfAway[a];
+      const p=ph*pa;
+      scoreProbs.push({h,a,p});
+      if(h>a) pHomeWin+=p; else if(h===a) pDraw+=p; else pAwayWin+=p;
+    }
+  }
+  const total = pHomeWin+pDraw+pAwayWin;
+  if(total>0){ pHomeWin/=total; pDraw/=total; pAwayWin/=total; }
+  return {pHomeWin, pDraw, pAwayWin, scoreProbs};
+}
+
+// The 5-zone state space has exactly 12 reachable (possession, zone, inBox) states. Since that
+// structure never depends on team ratings, we precompute it once as plain numeric transitions
+// (which state you move to on win/tie/loss, and whether it's a goal) instead of rebuilding
+// string keys every tick — this is the same math as a Map-based version, just much cheaper to run
+// hundreds of times in the formation optimizer.
+const STATE_LIST = [
+  {poss:'home',zone:0,inBox:false}, {poss:'home',zone:1,inBox:false}, {poss:'home',zone:2,inBox:false},
+  {poss:'home',zone:3,inBox:false}, {poss:'home',zone:4,inBox:false}, {poss:'home',zone:4,inBox:true},
+  {poss:'away',zone:4,inBox:false}, {poss:'away',zone:3,inBox:false}, {poss:'away',zone:2,inBox:false},
+  {poss:'away',zone:1,inBox:false}, {poss:'away',zone:0,inBox:false}, {poss:'away',zone:0,inBox:true}
+];
+function stateIdx(poss, zone, inBox){
+  if(poss==='home'){ return zone<4 ? zone : (inBox?5:4); }
+  return zone>0 ? 6+(4-zone) : (inBox?11:10);
+}
+const STATE_STRUCT = STATE_LIST.map(({poss,zone,inBox})=>{
+  const opp = poss==='home' ? 'away' : 'home';
+  const dir = poss==='home' ? 1 : -1;
+  const isAttackZone = (zone === (poss==='home'?4:0));
+  const isShotStep = isAttackZone && inBox;
+  let toWin, toTie, toLose, goalOnWin=null, probsKey;
+  if(isShotStep){
+    toWin = stateIdx(opp,2,false); goalOnWin = poss;
+    toTie = stateIdx(poss,zone,true);
+    toLose = stateIdx(opp, zone-dir, false);
+    probsKey='shot';
+  } else if(isAttackZone){
+    toWin = stateIdx(poss,zone,true);
+    toTie = stateIdx(poss,zone,false);
+    toLose = stateIdx(opp,zone,false);
+    probsKey='general';
+  } else {
+    toWin = stateIdx(poss, zone+dir, false);
+    toTie = stateIdx(poss,zone,false);
+    toLose = stateIdx(opp,zone,false);
+    probsKey = (zone===2) ? 'center' : 'general';
+  }
+  return {poss, toWin, toTie, toLose, goalOnWin, probsKey};
+});
+const HALFTIME_MAP = STATE_LIST.map(({poss}) => stateIdx(poss==='home'?'away':'home', 2, false));
+
+function computeExpectedGoals(teamA, teamB){
+  const probsByKey = {
+    general: { home: generalContestProbs(teamA,teamB), away: generalContestProbs(teamB,teamA) },
+    center:  { home: centerContestProbs(teamA,teamB),  away: centerContestProbs(teamB,teamA) },
+    shot:    { home: shotContestProbs(teamA,teamB),    away: shotContestProbs(teamB,teamA) }
+  };
+
+  let dist = new Float64Array(12);
+  dist[stateIdx('home',2,false)] = 0.5;
+  dist[stateIdx('away',2,false)] = 0.5;
+  let expA=0, expB=0;
+
+  for(let t=1; t<=160; t++){
+    if(t===81){
+      const flipped = new Float64Array(12);
+      for(let i=0;i<12;i++){ if(dist[i]) flipped[HALFTIME_MAP[i]] += dist[i]; }
+      dist = flipped;
+    }
+    const next = new Float64Array(12);
+    for(let i=0;i<12;i++){
+      const mass = dist[i];
+      if(!mass) continue;
+      const st = STATE_STRUCT[i];
+      const p = probsByKey[st.probsKey][st.poss];
+      next[st.toWin] += mass*p.winA;
+      next[st.toTie] += mass*p.tie;
+      next[st.toLose] += mass*p.winD;
+      if(st.goalOnWin==='home') expA += mass*p.winA;
+      if(st.goalOnWin==='away') expB += mass*p.winA;
+    }
+    dist = next;
+  }
+  return {expA, expB};
+}
+
+function predictScore(){
+  const home = {name:document.getElementById('home-name').value||'Red XI', ...readRoster('home')};
+  const away = {name:document.getElementById('away-name').value||'Blue XI', ...readRoster('away')};
+
+  const {expA:expHome, expB:expAway} = computeExpectedGoals(home, away);
+  const {pHomeWin, pDraw, pAwayWin, scoreProbs} = computeMatchProbabilities(expHome, expAway);
+  scoreProbs.sort((x,y)=>y.p-x.p);
+  const top = scoreProbs.slice(0,3);
+
+  document.getElementById('predict-status').innerHTML =
+    `<b>Expected goals</b> — <span style="color:var(--home)">${home.name}</span> ${expHome.toFixed(2)} · `+
+    `<span style="color:var(--away)">${away.name}</span> ${expAway.toFixed(2)}<br>`+
+    `<b>Win / draw / loss</b> — ${(pHomeWin*100).toFixed(1)}% / ${(pDraw*100).toFixed(1)}% / ${(pAwayWin*100).toFixed(1)}%<br>`+
+    `<b>Most likely scorelines</b> — `+top.map(s=>`${s.h}-${s.a} (${(s.p*100).toFixed(1)}%)`).join(' · ');
+}
+
+function readRoster(teamKey){
+  const formationKey = document.getElementById(`${teamKey}-formation`).value;
+  const players=[];
+  for(let i=0;i<6;i++){
+    players.push({
+      name: document.getElementById(`${teamKey}-name-${i}`).value || ('Player '+(i+1)),
+      off: clampRating(document.getElementById(`${teamKey}-off-${i}`).value),
+      def: clampRating(document.getElementById(`${teamKey}-def-${i}`).value),
+      isGK: i===0,
+      position: i===0 ? 'goalkeeper' : positionForSlot(formationKey, i-1)
+    });
+  }
+  return {players, formation: formationKey};
+}
+function clampRating(v){v=parseInt(v);if(isNaN(v))v=0;return Math.max(0,Math.min(10,v));}
+
+let state=null;
+
+function startMatch(){
+  const homeName=document.getElementById('home-name').value||'Red XI';
+  const awayName=document.getElementById('away-name').value||'Blue XI';
+  state={
+    minute:0,
+    zone:2,
+    inBox:false,
+    assistCandidate:null,
+    goals:[],
+    possession: Math.random()<0.5?'home':'away',
+    score:{home:0,away:0},
+    teams:{
+      home:{name:homeName, ...readRoster('home')},
+      away:{name:awayName, ...readRoster('away')}
+    },
+    log:[],
+    halftimeDone:false,
+    etHalftimeDone:false,
+    stage:'regulation',
+    etEnabled: document.getElementById('et-toggle').checked,
+    penalties:null,
+    over:false
+  };
+  document.getElementById('sb-home-name').textContent=homeName;
+  document.getElementById('sb-away-name').textContent=awayName;
+  document.getElementById('lbl-home-atk').textContent=homeName+' Attacking Third';
+  document.getElementById('lbl-away-atk').textContent=awayName+' Attacking Third';
+  document.getElementById('setup-card').classList.add('hidden');
+  document.getElementById('match-card').classList.remove('hidden');
+  document.getElementById('final-banner').classList.add('hidden');
+  document.getElementById('pitch-section').classList.remove('hidden');
+  document.getElementById('penalty-panel').classList.add('hidden');
+  document.getElementById('clock-lbl').textContent='Clock';
+  document.getElementById('btn-next').textContent='Advance 15s';
+  document.getElementById('btn-next').disabled=false;
+  document.getElementById('btn-chance').disabled=false;
+  document.getElementById('btn-sim').disabled=false;
+  addLog(0,`Kickoff — ${state.possession==='home'?homeName:awayName} get things started.`, state.possession);
+  renderPitch();
+  renderScoreboard();
+  renderScorers();
+}
+
+function resetMatch(){
+  document.getElementById('setup-card').classList.remove('hidden');
+  document.getElementById('match-card').classList.add('hidden');
+  document.getElementById('log').innerHTML='';
+  document.getElementById('scorers-list').textContent='No goals yet.';
+  document.getElementById('penalty-marks').innerHTML='';
+  document.getElementById('penalty-log').innerHTML='';
+}
+
+function d6(){return 1+Math.floor(Math.random()*6);}
+function rollDice(){return 1+Math.floor(Math.random()*20);}
+function boost(rating){ return Math.floor(rating*1.5); } // shared +50% (rounded down) bonus: GK Def on the shot, Midfielder rating in the Center Circle
+
+// Position weights for a single weighted-random pick per side, per contest.
+const attackWeight = {forward:3, midfielder:2, defender:1};
+const defenseWeight = {defender:3, midfielder:2, forward:1};
+
+function weightedPick(players, weightTable){
+  const pool = players.filter(p=>!p.isGK).map(p=>({p, w:weightTable[p.position]||0})).filter(x=>x.w>0);
+  const total = pool.reduce((s,x)=>s+x.w,0);
+  let r = Math.random()*total;
+  for(const x of pool){ if(r<x.w) return x.p; r-=x.w; }
+  return pool[pool.length-1].p;
+}
+function keeperOf(team){return team.players.find(p=>p.isGK);}
+function nameSpan(player, teamKey){
+  const color = teamKey==='home' ? 'var(--home)' : 'var(--away)';
+  return `<span class="who" style="color:${color}">${player.name}</span>`;
+}
+
+const REGULATION_END = 160;
+const HALFTIME_TICK = 81;
+const ET_PERIOD_TICKS = 28; // 7 minutes * 4 ticks/minute
+const ET_HALFTIME_TICK = REGULATION_END + ET_PERIOD_TICKS; // 188
+const ET_END = REGULATION_END + ET_PERIOD_TICKS*2; // 216
+
+function stepMinute(){
+  if(!state||state.over) return;
+  if(state.stage==='penalties'){ takePenaltyKick(); return; }
+  state.minute++;
+
+  if(state.minute===HALFTIME_TICK && !state.halftimeDone){
+    state.halftimeDone=true;
+    state.zone=2;
+    state.inBox=false;
+    state.assistCandidate=null;
+    state.possession = state.possession==='home'?'away':'home';
+    addLog(HALFTIME_TICK-1,'Halftime.', null, true);
+  }
+
+  if(state.stage==='extratime' && state.minute===ET_HALFTIME_TICK && !state.etHalftimeDone){
+    state.etHalftimeDone=true;
+    state.zone=2;
+    state.inBox=false;
+    state.assistCandidate=null;
+    state.possession = state.possession==='home'?'away':'home';
+    addLog(ET_HALFTIME_TICK-1,'End of the first period of extra time.', null, true);
+  }
+
+  const team = state.possession;
+  const opp = team==='home'?'away':'home';
+  const dir = team==='home'?1:-1;
+  const teamObj=state.teams[team], oppObj=state.teams[opp];
+
+  // "Attacking Third" only means something relative to whoever currently has the ball —
+  // if a team wins possession deep in the OTHER end's attacking third, they're just
+  // stuck deep in their own end and need to work out normally, not "entering a box".
+  const targetZone = team==='home' ? 4 : 0;
+  const isAttackZone = (state.zone===targetZone);
+  const isShotStep = isAttackZone && state.inBox;
+
+  let attacker, defender, aTotal, dTotal, doubleTag='';
+  let attBoosted=false, defBoosted=false;
+  if(isShotStep){
+    attacker = weightedPick(teamObj.players, attackWeight);
+    defender = keeperOf(oppObj);
+    aTotal = rollDice()+attacker.off;
+    dTotal = rollDice()+boost(defender.def);
+    doubleTag = ` (${nameSpan(defender,opp)} Def +50%)`;
+  } else {
+    attacker = weightedPick(teamObj.players, attackWeight);
+    defender = weightedPick(oppObj.players, defenseWeight);
+    const inCenter = (state.zone===2);
+    attBoosted = inCenter && attacker.position==='midfielder';
+    defBoosted = inCenter && defender.position==='midfielder';
+    aTotal = rollDice() + (attBoosted ? boost(attacker.off) : attacker.off);
+    dTotal = rollDice() + (defBoosted ? boost(defender.def) : defender.def);
+  }
+  const margin=aTotal-dTotal;
+  const roleTag = `${attacker.position} vs ${defender.position}`;
+  const attName = nameSpan(attacker, team);
+  const defName = nameSpan(defender, opp);
+  if(attBoosted || defBoosted){
+    const parts=[];
+    if(attBoosted) parts.push(`${attName} Off +50%`);
+    if(defBoosted) parts.push(`${defName} Def +50%`);
+    doubleTag = ` (${parts.join(', ')})`;
+  }
+
+  let text='', isGoal=false;
+
+  if(aTotal>dTotal){
+    if(isShotStep){
+      state.score[team]++;
+      state.zone=2;
+      state.inBox=false;
+      state.possession=opp;
+      isGoal=true;
+      const rawAssist = state.assistCandidate;
+      const assist = (rawAssist && rawAssist.player !== attacker) ? rawAssist : null;
+      const assistTag = assist ? ` — assisted by ${nameSpan(assist.player, assist.teamKey)}` : '';
+      state.goals.push({
+        minute: state.minute, teamKey: team, teamName: teamObj.name,
+        scorer: attacker.name, assist: assist ? assist.player.name : null
+      });
+      state.assistCandidate = null;
+      text=`GOAL! ${attName} (${teamObj.name}) beats keeper ${defName} ${aTotal}-${dTotal}${doubleTag}${assistTag}. ${state.teams.home.name} ${state.score.home} – ${state.score.away} ${state.teams.away.name}`;
+    } else if(isAttackZone){
+      state.inBox=true;
+      state.assistCandidate = {player:attacker, teamKey:team};
+      text=`${attName} beats ${defName} ${aTotal}-${dTotal} (${roleTag}) and pushes it into the box — one-on-one with the keeper.`;
+    } else {
+      state.zone += dir;
+      text=`${attName} beats ${defName} ${aTotal}-${dTotal} (${roleTag})${doubleTag}${margin>=4?', brilliant run':''} — ${teamObj.name} push forward.`;
+    }
+  } else if(dTotal>aTotal){
+    if(isShotStep){
+      state.zone = state.zone - dir;
+      state.inBox=false;
+      state.possession=opp;
+      state.assistCandidate = null;
+      text=`${defName} saves ${attName}'s shot (${dTotal}-${aTotal})${doubleTag} and ${oppObj.name} clear their lines.`;
+    } else if(isAttackZone){
+      // Defenders winning the entry duel just win the ball back — it stays in the third,
+      // it doesn't get cleared. Only a keeper save clears the lines.
+      state.possession=opp;
+      text=`${defName} shuts down ${attName} (${dTotal}-${aTotal}, ${roleTag}) — ${oppObj.name} win it back but the ball stays put, deep in their own third.`;
+    } else {
+      state.possession=opp;
+      text=`${defName} wins the ball off ${attName} (${dTotal}-${aTotal}, ${roleTag})${doubleTag} — turnover to ${oppObj.name}.`;
+    }
+  } else {
+    text = isShotStep
+      ? `${attName}'s effort is blocked on the line by ${defName} (${aTotal}-${dTotal}) — still scrambling, play continues.`
+      : `50-50 ball between ${attName} and ${defName} (${aTotal}-${dTotal}, ${roleTag})${doubleTag} — contested, play continues.`;
+  }
+  addLog(state.minute, text, team, false, isGoal);
+  renderPitch();
+  renderScoreboard();
+  renderScorers();
+
+  if(state.stage==='regulation' && state.minute>=REGULATION_END){
+    if(state.score.home===state.score.away && state.etEnabled){
+      beginExtraTime();
+    } else {
+      endMatch();
+    }
+  } else if(state.stage==='extratime' && state.minute>=ET_END){
+    if(state.score.home===state.score.away){
+      beginPenalties();
+    } else {
+      endMatch();
+    }
+  }
+}
+
+function simRest(){
+  if(!state||state.over) return;
+  const startStage = state.stage;
+  const int=setInterval(()=>{
+    stepMinute();
+    const log=document.getElementById('log');
+    log.scrollTop=log.scrollHeight;
+    if(!state || state.over || state.stage!==startStage){clearInterval(int);}
+  },70);
+}
+
+function simUntilChance(){
+  if(!state||state.over) return;
+  const startStage = state.stage;
+  const int=setInterval(()=>{
+    const wasInBox = state.inBox;
+    stepMinute();
+    const log=document.getElementById('log');
+    log.scrollTop=log.scrollHeight;
+    if(!state || state.over || state.stage!==startStage || (state.inBox && !wasInBox)){clearInterval(int);}
+  },70);
+}
+
+function beginExtraTime(){
+  state.stage='extratime';
+  state.etHalftimeDone=false;
+  state.zone=2;
+  state.inBox=false;
+  state.assistCandidate=null;
+  state.possession = Math.random()<0.5 ? 'home' : 'away';
+  document.getElementById('clock-lbl').textContent='Clock (ET)';
+  addLog(REGULATION_END, `Full time — level at ${state.score.home}-${state.score.away}. On to extra time!`, null, true);
+  renderPitch();
+  renderScoreboard();
+}
+
+function beginPenalties(){
+  state.stage='penalties';
+  document.getElementById('pitch-section').classList.add('hidden');
+  document.getElementById('penalty-panel').classList.remove('hidden');
+  document.getElementById('clock-lbl').textContent='Shootout';
+  document.getElementById('sb-clock').textContent='PENS';
+  document.getElementById('btn-next').textContent='Take penalty';
+  // Kicking order: all 6 players (goalkeepers included), highest Off first.
+  const homeOrder = [...state.teams.home.players].sort((a,b)=>b.off-a.off);
+  const awayOrder = [...state.teams.away.players].sort((a,b)=>b.off-a.off);
+  state.penalties = {
+    order:{home:homeOrder, away:awayOrder},
+    idx:{home:0, away:0},
+    taken:{home:0, away:0},
+    score:{home:0, away:0},
+    history:{home:[], away:[]},
+    kickingTeam: Math.random()<0.5 ? 'home' : 'away',
+    finished:false,
+    winner:null
+  };
+  addLog(ET_END, `Extra time ends level at ${state.score.home}-${state.score.away}. Penalties!`, null, true);
+  renderScoreboard();
+  renderPenaltyMarks();
+}
+
+function takePenaltyKick(){
+  const p = state.penalties;
+  if(!p || p.finished) return;
+  const team = p.kickingTeam;
+  const opp = team==='home' ? 'away' : 'home';
+  const kicker = p.order[team][p.idx[team] % 6];
+  const keeper = keeperOf(state.teams[opp]);
+
+  const aTotal = rollDice() + boost(kicker.off); // +50% bonus for the shooter
+  const dTotal = rollDice() + keeper.def;        // no bonus for the keeper — penalties favor the attacker
+  const scored = aTotal > dTotal;
+
+  p.taken[team]++;
+  p.idx[team]++;
+  if(scored) p.score[team]++;
+  p.history[team].push(scored);
+
+  const kickerSpan = nameSpan(kicker, team);
+  const keeperSpan = nameSpan(keeper, opp);
+  const text = scored
+    ? `${kickerSpan} scores! (${aTotal}-${dTotal}) — ${state.teams.home.name} ${p.score.home}-${p.score.away} ${state.teams.away.name}`
+    : `${keeperSpan} saves it! ${kickerSpan}'s penalty is stopped (${dTotal}-${aTotal}).`;
+  const logEntry = document.createElement('div');
+  logEntry.innerHTML = text;
+  document.getElementById('penalty-log').prepend(logEntry);
+
+  checkPenaltyOutcome();
+  if(!p.finished) p.kickingTeam = opp;
+
+  renderScoreboard();
+  renderPenaltyMarks();
+  if(p.finished){ endMatch(); }
+}
+
+function checkPenaltyOutcome(){
+  const p = state.penalties;
+  const {home, away} = p.score;
+  const hT = p.taken.home, aT = p.taken.away;
+  const BASE_ROUNDS = 5; // standard 5-kick round; the 6th (lowest-Off) player only kicks if it goes further
+  if(hT<BASE_ROUNDS || aT<BASE_ROUNDS){
+    const hRemain = BASE_ROUNDS-hT, aRemain = BASE_ROUNDS-aT;
+    if(home > away+aRemain){ p.finished=true; p.winner='home'; return; }
+    if(away > home+hRemain){ p.finished=true; p.winner='away'; return; }
+    return;
+  }
+  if(hT===aT && home!==away){
+    p.finished=true;
+    p.winner = home>away ? 'home' : 'away';
+  }
+}
+
+function renderPenaltyMarks(){
+  const p = state.penalties;
+  if(!p) return;
+  const marksFor = (teamKey)=>{
+    const color = teamKey==='home' ? 'var(--home)' : 'var(--away)';
+    let html = `<div style="text-align:center;"><div style="font-size:11px;color:${color};margin-bottom:4px;">${state.teams[teamKey].name}</div><div style="display:flex;gap:4px;">`;
+    const hist = p.history[teamKey];
+    const kicksToShow = Math.max(5, hist.length);
+    for(let i=0;i<kicksToShow;i++){
+      if(i < hist.length){
+        const scored = hist[i];
+        html += `<div style="width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${scored?color:'transparent'};border:1.5px solid ${scored?color:'var(--chalk-dim)'};color:${scored?'#08170f':'var(--chalk-dim)'};">${scored?'✓':'✕'}</div>`;
+      } else {
+        html += `<div style="width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(238,242,232,.25);"></div>`;
+      }
+    }
+    html += `</div></div>`;
+    return html;
+  };
+  document.getElementById('penalty-marks').innerHTML =
+    `${marksFor('home')}<div style="font-family:'Anton',sans-serif;font-size:22px;align-self:center;">${p.score.home} – ${p.score.away}</div>${marksFor('away')}`;
+}
+
+function endMatch(){
+  state.over=true;
+  document.getElementById('btn-next').disabled=true;
+  document.getElementById('btn-chance').disabled=true;
+  document.getElementById('btn-sim').disabled=true;
+  const h=state.score.home, a=state.score.away;
+  const banner=document.getElementById('final-banner');
+  banner.classList.remove('hidden');
+  let stageNote = '';
+  if(state.stage==='extratime') stageNote = ' (after extra time)';
+  let result;
+  if(state.stage==='penalties'){
+    const p = state.penalties;
+    const winnerName = state.teams[p.winner].name;
+    result = `Full time — ${h}–${a} draw, ${winnerName} win ${p.score.home}-${p.score.away} on penalties`;
+  } else if(h>a) result=`Full time — ${state.teams.home.name} win ${h}–${a}${stageNote}`;
+  else if(a>h) result=`Full time — ${state.teams.away.name} win ${a}–${h}${stageNote}`;
+  else result=`Full time — ${h}–${a} draw`;
+  banner.textContent=result;
+}
+
+function formatClock(ticks){
+  const totalSeconds = Math.round(ticks*15);
+  const m = Math.floor(totalSeconds/60);
+  const s = totalSeconds%60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function addLog(tick,text,teamKey,isHalftime,isGoal){
+  const log=document.getElementById('log');
+  const entry=document.createElement('div');
+  entry.className='log-entry'+(teamKey?` ${teamKey}-ev`:'')+(isGoal?' goal':'');
+  entry.innerHTML=`<span class="min">${formatClock(tick)}</span>${text}`;
+  log.appendChild(entry);
+  log.scrollTop=log.scrollHeight;
+}
+
+function renderScorers(){
+  const list = document.getElementById('scorers-list');
+  if(!state.goals.length){
+    list.textContent = 'No goals yet.';
+    return;
+  }
+  list.innerHTML = state.goals.map(g=>{
+    const color = g.teamKey==='home' ? 'var(--home)' : 'var(--away)';
+    const assistPart = g.assist ? ` <span style="color:var(--chalk-dim)">(assist: ${g.assist})</span>` : '';
+    return `<div>${formatClock(g.minute)} — <b style="color:${color}">${g.scorer}</b> <span style="color:var(--chalk-dim)">(${g.teamName})</span>${assistPart}</div>`;
+  }).join('');
+}
+
+function renderScoreboard(){
+  document.getElementById('sb-home-score').textContent=state.score.home;
+  document.getElementById('sb-away-score').textContent=state.score.away;
+  if(state.stage==='penalties'){
+    document.getElementById('sb-clock').textContent='PENS';
+  } else {
+    const cap = state.stage==='extratime' ? ET_END : REGULATION_END;
+    document.getElementById('sb-clock').textContent=formatClock(Math.min(state.minute,cap));
+  }
+  const possLine=document.getElementById('poss-line');
+  if(state.over || state.stage==='penalties'){possLine.textContent='';}
+  else {
+    const name = state.possession==='home'?state.teams.home.name:state.teams.away.name;
+    const boxNote = state.inBox ? ` — <span style="color:var(--amber)">in the box, one-on-one with the keeper</span>` : '';
+    possLine.innerHTML=`Possession: <span style="color:${state.possession==='home'?'var(--home)':'var(--away)'}">${name}</span>${boxNote}`;
+  }
+}
+
+function renderPitch(){
+  const pitch=document.getElementById('pitch');
+  pitch.innerHTML='';
+  const zoneClasses=['atk-away','','','','atk-home'];
+  for(let i=0;i<5;i++){
+    const z=document.createElement('div');
+    z.className='zone '+zoneClasses[i];
+    if(state.zone===i){
+      const ball=document.createElement('div');
+      ball.className='ball';
+      z.appendChild(ball);
+    }
+    pitch.appendChild(z);
+  }
+}
+</script>
+</body>
+</html>
