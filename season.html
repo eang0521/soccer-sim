@@ -42,6 +42,7 @@
   .tabbtn.active{background:var(--amber);color:#2a1c04;border-color:var(--amber);}
   .tabpanel{display:none;}
   .tabpanel.active{display:block;}
+  .season-select{background:rgba(238,242,232,.08);border:1px solid rgba(238,242,232,.2);color:var(--chalk);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;}
 
   table.data-table{width:100%;border-collapse:collapse;font-size:13px;}
   table.data-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--chalk-dim);padding:6px 8px;border-bottom:1px solid rgba(238,242,232,.15);}
@@ -178,7 +179,10 @@
 
     <div class="tabpanel" id="tab-teams">
       <div class="card">
-        <h2>Teams</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <h2 style="margin-bottom:0;">Teams</h2>
+          <select class="season-select" id="teams-season-select" onchange="renderTeamsTab()"></select>
+        </div>
         <div class="team-grid" id="team-grid"></div>
       </div>
     </div>
@@ -211,7 +215,10 @@
         <div class="log" id="history-list"></div>
       </div>
       <div class="card">
-        <h2>Last offseason report</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <h2 style="margin-bottom:0;">Offseason report</h2>
+          <select class="season-select" id="offseason-season-select" onchange="renderHistoryTab()"></select>
+        </div>
         <div id="offseason-report-detail"></div>
       </div>
     </div>
@@ -724,7 +731,7 @@ function buildDefaultLeague(){
     version:2, players, teams,
     draftDone:false, draftReport:null,
     seasonNum:0, activeSeason:null,
-    careerStats:{}, history:[], offseasonReport:null
+    careerStats:{}, history:[]
   };
 }
 function loadLeague(){
@@ -982,11 +989,24 @@ function finalizeSeasonStats(){
   const champTeam = league.teams.find(t=>t.id===s.playoffs.champion);
   const regChampTeam = league.teams.find(t=>t.id===s.regularStandingsSnapshot[0].id);
   const topScorerEntry = Object.entries(totals).sort((a,b)=>b[1].goals-a[1].goals)[0];
+  // Rosters/ratings are still exactly as they were all season -- free agency (which is what
+  // changes them) doesn't run until the user starts the next season -- so this is the moment to
+  // snapshot "what did this season's teams look like" for the history dropdown.
+  const teamsSnapshot = league.teams.map(t=>({
+    id:t.id, name:t.name, color:t.color,
+    players: t.playerIds.map(pid=>{
+      const p = league.players[pid];
+      return {id:p.id, name:p.name, grade:p.grade, off:p.off, def:p.def, time:p.time};
+    })
+  }));
   league.history.push({
     seasonNum: s.seasonNum,
+    teamsSnapshot,
+    standings: s.regularStandingsSnapshot,
     champTeamName: champTeam.name,
     regularSeasonWinner: regChampTeam.name,
-    topScorer: topScorerEntry ? {name: league.players[topScorerEntry[0]].name, goals: topScorerEntry[1].goals} : null
+    topScorer: topScorerEntry ? {name: league.players[topScorerEntry[0]].name, goals: topScorerEntry[1].goals} : null,
+    offseasonReport: null
   });
   saveLeague();
 }
@@ -1062,7 +1082,8 @@ function runFreeAgencyAndAdvance(){
     p.def = rollSeasonRating(p.baseDef, p.grade);
   });
 
-  league.offseasonReport = { afterSeasonNum: s.seasonNum, threshold, faCount: faPoolSet.size, faReport };
+  const histEntry = league.history.find(h=>h.seasonNum===s.seasonNum);
+  if(histEntry) histEntry.offseasonReport = { threshold, faCount: faPoolSet.size, faReport };
   saveLeague();
 }
 
@@ -1506,17 +1527,39 @@ function renderPlayoffsTab(){
 }
 
 // ---- Teams tab ----
+function populateSeasonSelect(select, extraLabel){
+  const prevValue = select.value;
+  const options = [`<option value="current">${extraLabel}</option>`]
+    .concat(league.history.slice().reverse().map(h=>`<option value="${h.seasonNum}">Season ${h.seasonNum}</option>`));
+  select.innerHTML = options.join('');
+  const stillValid = Array.from(select.options).some(o=>o.value===prevValue);
+  select.value = stillValid ? prevValue : 'current';
+}
 function renderTeamsTab(){
-  const s = league.activeSeason;
-  const standings = s ? computeStandings(league.teams, s.fixtures) : null;
+  const select = document.getElementById('teams-season-select');
+  populateSeasonSelect(select, 'Current roster');
+
+  let teamsForDisplay, standingsForDisplay;
+  if(select.value==='current'){
+    const s = league.activeSeason;
+    standingsForDisplay = s ? computeStandings(league.teams, s.fixtures) : null;
+    teamsForDisplay = league.teams.map(t=>({
+      id:t.id, name:t.name, color:t.color,
+      players: t.playerIds.map(pid=>{ const p=league.players[pid]; return {name:p.name, grade:p.grade, off:p.off, def:p.def, time:p.time}; })
+    }));
+  } else {
+    const h = league.history.find(x=>x.seasonNum===parseInt(select.value));
+    teamsForDisplay = h.teamsSnapshot;
+    standingsForDisplay = h.standings;
+  }
+
   const grid = document.getElementById('team-grid');
-  grid.innerHTML = league.teams.map(t=>{
-    const rec = standings ? standings.find(r=>r.id===t.id) : null;
+  grid.innerHTML = teamsForDisplay.map(t=>{
+    const rec = standingsForDisplay ? standingsForDisplay.find(r=>r.id===t.id) : null;
     const recTxt = rec ? `${rec.w}-${rec.d}-${rec.l} &middot; ${rec.pts} pts &middot; Rk ${rec.rk}` : 'No games yet';
-    const rows = t.playerIds.map(pid=>{
-      const p = league.players[pid];
-      return `<div class="roster-row"><span>${escapeHtml(p.name)}</span><span>G${p.grade}</span><span>${p.off}</span><span>${p.def}</span><span>${p.time.toFixed(1)}t</span></div>`;
-    }).join('');
+    const rows = t.players.map(p=>
+      `<div class="roster-row"><span>${escapeHtml(p.name)}</span><span>G${p.grade}</span><span>${p.off}</span><span>${p.def}</span><span>${p.time.toFixed(1)}t</span></div>`
+    ).join('');
     return `<div class="team-card">
       <div class="thead"><span class="dot" style="background:${t.color}"></span><b style="color:${teamTextColor(t.name)}">${escapeHtml(t.name)}</b></div>
       <div class="record">${recTxt}</div>
@@ -1568,13 +1611,24 @@ function renderHistoryTab(){
       ).join('')
     : '<div class="dim">No seasons completed yet.</div>';
 
-  const rep = league.offseasonReport;
+  const select = document.getElementById('offseason-season-select');
+  const withReports = league.history.filter(h=>h.offseasonReport).slice().reverse();
   const detail = document.getElementById('offseason-report-detail');
-  if(!rep){ detail.innerHTML = '<div class="dim">No offseason has run yet.</div>'; return; }
+  if(!withReports.length){
+    select.innerHTML = '<option value="">No offseason reports yet</option>';
+    detail.innerHTML = '<div class="dim">No offseason has run yet.</div>';
+    return;
+  }
+  const prevValue = select.value;
+  select.innerHTML = withReports.map(h=>`<option value="${h.seasonNum}">After Season ${h.seasonNum}</option>`).join('');
+  select.value = Array.from(select.options).some(o=>o.value===prevValue) ? prevValue : String(withReports[0].seasonNum);
+
+  const hEntry = withReports.find(h=>h.seasonNum===parseInt(select.value));
+  const rep = hEntry.offseasonReport;
   const rows = rep.faReport.map(r=>
     `<div class="log-entry">${teamText(r.teamId)} sign <b>${escapeHtml(league.players[r.playerId].name)}</b> <span class="dim">(rating ${r.rating.toFixed(1)})</span></div>`
   ).join('');
-  detail.innerHTML = `<div class="report-block">After Season ${rep.afterSeasonNum}: Free Agency threshold was <b>${rep.threshold.toFixed(2)}</b>, ${rep.faCount} players entered the pool.</div><div class="log">${rows}</div>`;
+  detail.innerHTML = `<div class="report-block">After Season ${hEntry.seasonNum}: Free Agency threshold was <b>${rep.threshold.toFixed(2)}</b>, ${rep.faCount} players entered the pool.</div><div class="log">${rows}</div>`;
 }
 
 // ---- Master render ----
