@@ -66,6 +66,13 @@
   .log-entry{border-bottom:1px solid rgba(238,242,232,.06);padding:3px 0;}
   .log-entry:last-child{border-bottom:none;}
 
+  .pickboard-row{display:grid;gap:8px;align-items:center;padding:3px 4px;border-bottom:1px solid rgba(238,242,232,.06);font-size:12.5px;font-family:'JetBrains Mono',monospace;}
+  .pickboard-row:last-child{border-bottom:none;}
+  .pickboard-row.slot{grid-template-columns:34px 1fr 26px 26px;}
+  .pickboard-row.board3{grid-template-columns:1fr 26px 26px;}
+  .pickboard-row.board4{grid-template-columns:1fr 26px 26px 38px;}
+  .pickboard-row .num{text-align:right;color:var(--chalk-dim);}
+
   .fixture-row{display:grid;grid-template-columns:34px 1fr 50px 1fr 90px;gap:8px;align-items:center;font-size:13px;padding:5px 4px;border-bottom:1px solid rgba(238,242,232,.06);}
   .fixture-row .side{display:flex;align-items:center;gap:6px;}
   .fixture-row .side.away{justify-content:flex-end;text-align:right;}
@@ -1239,11 +1246,16 @@ function buildOffseasonBoard(){
     });
   });
 
+  // Uses BASE Off+Def, not this past season's rolled values -- a player who happened to run hot
+  // (or cold) for one season shouldn't get an inflated (or deflated) free-agent rating for it;
+  // the rating should track their actual identity, same as the draft value does.
   const faRatings={};
   faPoolSet.forEach(pid=>{
     const p=league.players[pid];
-    faRatings[pid] = (p.off+p.def)*(Math.random()+1);
+    faRatings[pid] = (p.baseOff+p.baseDef)*(Math.random()+1);
   });
+  const fromTeam = {};
+  league.teams.forEach(t=>{ removedFromTeam[t.id].forEach(pid=> fromTeam[pid]=t.id); });
 
   const virtualCount = {};
   league.teams.forEach(t=> virtualCount[t.id] = t.playerIds.length - removedFromTeam[t.id].length);
@@ -1263,7 +1275,7 @@ function buildOffseasonBoard(){
       virtualCount[teamId]++;
     }
   }
-  return { threshold, faPoolIds: Array.from(faPoolSet), assignments, removedFromTeam };
+  return { threshold, faPoolIds: Array.from(faPoolSet), assignments, removedFromTeam, fromTeam };
 }
 function startOffseason(){
   if(league.offseason) return;
@@ -1274,7 +1286,7 @@ function startOffseason(){
     t.playerIds = t.playerIds.filter(pid=>!removedSet.has(pid));
   });
   board.faPoolIds.forEach(pid=> league.players[pid].teamId=null);
-  league.offseason = { threshold:board.threshold, assignments:board.assignments, nextIndex:0 };
+  league.offseason = { threshold:board.threshold, assignments:board.assignments, fromTeam:board.fromTeam, nextIndex:0 };
   disableSimButtons(true);
   saveLeague();
   render();
@@ -1760,16 +1772,23 @@ function teamAbbrSpan(id){
 // Shared by the draft gate and the offseason panel: a "slot" row is a team waiting on a pick
 // (just its abbreviation) or one that already has it this round/pass (abbreviation + player +
 // Off + Def). A "board" row is one still-available player, in the same Name Off Def shape.
+// Both rows show BASE Off/Def, not this-past-season's rolled values -- that's what the hidden
+// draft/FA rating is actually computed from, so the board stays consistent with what's driving
+// pick order instead of showing a number that doesn't match. Off/Def are right-aligned via the
+// grid's .num columns so they line up down the list regardless of name length.
 function slotRowHtml(teamId, filledPlayer){
   const abbr = teamAbbrSpan(teamId);
-  if(!filledPlayer) return `<div class="log-entry dim">${abbr}</div>`;
-  return `<div class="log-entry">${abbr} ${nameSpan(filledPlayer.name, teamColor(teamId))} ${filledPlayer.off} ${filledPlayer.def}</div>`;
+  if(!filledPlayer) return `<div class="pickboard-row slot dim">${abbr}<span></span><span></span><span></span></div>`;
+  return `<div class="pickboard-row slot">${abbr}${nameSpan(filledPlayer.name, teamColor(teamId))}<span class="num">${filledPlayer.baseOff}</span><span class="num">${filledPlayer.baseDef}</span></div>`;
 }
-function boardRowHtml(p){
-  return `<div class="log-entry">${escapeHtml(p.name)} ${p.off} ${p.def}</div>`;
+function boardRowHtml(p, fromTeamId){
+  if(fromTeamId){
+    return `<div class="pickboard-row board4"><span>${escapeHtml(p.name)}</span><span class="num">${p.baseOff}</span><span class="num">${p.baseDef}</span>${teamAbbrSpan(fromTeamId)}</div>`;
+  }
+  return `<div class="pickboard-row board3"><span>${escapeHtml(p.name)}</span><span class="num">${p.baseOff}</span><span class="num">${p.baseDef}</span></div>`;
 }
 function undraftedBoard(){
-  return Object.values(league.players).filter(p=>!p.teamId).sort((a,b)=>(b.off+b.def)-(a.off+a.def));
+  return Object.values(league.players).filter(p=>!p.teamId).sort((a,b)=>(b.baseOff+b.baseDef)-(a.baseOff+a.baseDef));
 }
 
 // ---- Season tab ----
@@ -2136,7 +2155,7 @@ function renderDraftGate(){
     const applied = (pk.pick-1) < d.nextPickIndex;
     return slotRowHtml(pk.teamId, applied ? league.players[pk.playerId] : null);
   }).join('');
-  const rightRows = undraftedBoard().map(boardRowHtml).join('') || '<div class="dim">Board is empty.</div>';
+  const rightRows = undraftedBoard().map(p=>boardRowHtml(p)).join('') || '<div class="dim">Board is empty.</div>';
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
       <h2 style="margin-bottom:0;">Draft in progress</h2>
@@ -2153,7 +2172,7 @@ function renderDraftGate(){
         <div class="log" style="max-height:400px;">${leftRows}</div>
       </div>
       <div>
-        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(Off / Def)</span></h2>
+        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(base Off / Def)</span></h2>
         <div class="log" style="max-height:400px;">${rightRows}</div>
       </div>
     </div>
@@ -2172,7 +2191,7 @@ function renderOffseasonPanel(){
     const applied = a.index < off.nextIndex;
     return slotRowHtml(a.teamId, applied ? league.players[a.playerId] : null);
   }).join('');
-  const rightRows = undraftedBoard().map(boardRowHtml).join('') || '<div class="dim">Board is empty.</div>';
+  const rightRows = undraftedBoard().map(p=>boardRowHtml(p, off.fromTeam[p.id])).join('') || '<div class="dim">Board is empty.</div>';
   document.getElementById('offseason-panel-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
       <h2 style="margin-bottom:0;">Free agency</h2>
@@ -2189,7 +2208,7 @@ function renderOffseasonPanel(){
         <div class="log" style="max-height:400px;">${leftRows}</div>
       </div>
       <div>
-        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(Off / Def)</span></h2>
+        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(base Off / Def, from)</span></h2>
         <div class="log" style="max-height:400px;">${rightRows}</div>
       </div>
     </div>
