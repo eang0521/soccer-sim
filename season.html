@@ -1073,6 +1073,26 @@ function hideProgress(){ document.getElementById('progress-panel').classList.add
 function disableSimButtons(disabled){
   document.querySelectorAll('.sim-btn').forEach(b=> b.disabled = disabled);
 }
+// Cheap mid-loop refresh: standings/stats are just a scan over however many games have been
+// played so far (<=120), trivial next to the per-game optimizer cost, so it's safe to call this
+// on every throttled yield point. Deliberately skips the pricier schedule/teams tabs, which get
+// their one full render() at the end of the loop.
+// renderSeasonTab()/renderPlayoffsTab() rebuild their card's innerHTML from scratch, including
+// the sim-btn buttons — which wipes out the .disabled that disableSimButtons(true) set on the
+// old elements. Both helpers below are only ever called mid-loop (after that disable call), so
+// they re-assert it on the freshly rendered buttons.
+function renderLiveProgress(){
+  renderSeasonTab();
+  renderStandingsTab();
+  renderStats();
+  disableSimButtons(true);
+}
+function renderLivePlayoffProgress(){
+  renderSeasonTab();
+  renderPlayoffsTab();
+  renderStats();
+  disableSimButtons(true);
+}
 async function simFixtureList(list, label){
   if(!list.length) return;
   disableSimButtons(true);
@@ -1083,6 +1103,7 @@ async function simFixtureList(list, label){
     applyFixtureResult(fx, result);
     if(i%4===3 || i===list.length-1){
       setProgressText(`${label} — ${i+1}/${list.length}`);
+      renderLiveProgress();
       await new Promise(r=>setTimeout(r,0));
     }
   }
@@ -1139,6 +1160,7 @@ async function simRestOfPlayoffsBtn(){
     advanceBracket();
     if(guard%3===0){
       setProgressText(`Simulating playoffs... (${guard} games)`);
+      renderLivePlayoffProgress();
       await new Promise(r=>setTimeout(r,0));
     }
   }
@@ -1158,7 +1180,11 @@ async function runNSeasonsBtn(nRaw){
       const fx = unplayed[g];
       const result = simulateOneGame(fx.home, fx.away, false);
       applyFixtureResult(fx, result);
-      if(g%4===3){ setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — regular season ${g+1}/${unplayed.length}`); await new Promise(r=>setTimeout(r,0)); }
+      if(g%4===3){
+        setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — regular season ${g+1}/${unplayed.length}`);
+        renderLiveProgress();
+        await new Promise(r=>setTimeout(r,0));
+      }
     }
     checkRegularSeasonComplete();
     let guard=0;
@@ -1169,6 +1195,7 @@ async function runNSeasonsBtn(nRaw){
       advanceBracket();
       if(guard%3===0){
         setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — playoffs, game ${guard}`);
+        renderLivePlayoffProgress();
         await new Promise(r=>setTimeout(r,0));
       }
     }
@@ -1384,7 +1411,7 @@ function renderSeasonTab(){
     off.innerHTML = `<h2>Offseason</h2>
       <div class="report-block">Runs the Time/free-agency mechanic exactly once, then opens Season ${s.seasonNum+1}.</div>
       <div class="btn-row">
-        <button class="btn" onclick="startNextSeasonBtn()">Run Offseason &amp; Start Season ${s.seasonNum+1}</button>
+        <button class="btn sim-btn" onclick="startNextSeasonBtn()">Run Offseason &amp; Start Season ${s.seasonNum+1}</button>
         <input type="number" class="num-input" id="n-seasons" min="1" max="10" value="3">
         <button class="btn secondary sim-btn" onclick="runNSeasonsBtn(document.getElementById('n-seasons').value)">Run N more seasons</button>
       </div>`;
