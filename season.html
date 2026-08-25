@@ -1067,7 +1067,10 @@ function findNextPlayoffSeries(){
 
 // ---- Stats rollup (called once, the instant the playoffs finish) ----
 function collectAllSeasonGames(s){
-  const games = s.fixtures.map(f=>({home:f.home,away:f.away,hg:f.hg,ag:f.ag,goals:f.goals,saves:f.saves,battleStats:f.battleStats,homeGkId:f.homeGkId,awayGkId:f.awayGkId}));
+  // Only actually-played games -- this now gets called live mid-season (Stats tab, Players tab),
+  // not just once a season is fully done, so an unfiltered map over every SCHEDULED fixture would
+  // count a full season's worth of games for every player the instant a season starts.
+  const games = s.fixtures.filter(f=>f.played).map(f=>({home:f.home,away:f.away,hg:f.hg,ag:f.ag,goals:f.goals,saves:f.saves,battleStats:f.battleStats,homeGkId:f.homeGkId,awayGkId:f.awayGkId}));
   if(s.playoffs){
     const allSeries=[s.playoffs.wildcard.m1,s.playoffs.wildcard.m2,s.playoffs.round1.a,s.playoffs.round1.b,
       s.playoffs.round1.c,s.playoffs.round1.d,s.playoffs.semis.s1,s.playoffs.semis.s2,s.playoffs.finals];
