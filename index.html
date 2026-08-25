@@ -140,6 +140,10 @@
     font-family:'JetBrains Mono',monospace;
     font-size:13px;
   }
+  /* The closed box keeps the light theme text, but most browsers render the OPENED dropdown
+     list with a plain white popup using system colors -- without this, that light text color
+     carries into the popup and becomes nearly invisible on white. */
+  .formation-row select option{color:#111;background:#fff;}
   .formation-row .fbreak{
     color:var(--chalk-dim);
     font-size:11px;

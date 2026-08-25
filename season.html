@@ -45,6 +45,10 @@
   .tabpanel{display:none;}
   .tabpanel.active{display:block;}
   .season-select{background:rgba(238,242,232,.08);border:1px solid rgba(238,242,232,.2);color:var(--chalk);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;}
+  /* The closed box keeps the light theme text, but most browsers render the OPENED dropdown
+     list with a plain white popup using system colors -- without this, that light text color
+     carries into the popup and becomes nearly invisible on white. */
+  .season-select option{color:#111;background:#fff;}
 
   table.data-table{width:100%;border-collapse:collapse;font-size:13px;}
   table.data-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--chalk-dim);padding:6px 8px;border-bottom:1px solid rgba(238,242,232,.15);}
