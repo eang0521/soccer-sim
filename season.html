@@ -133,6 +133,10 @@
     <div class="log" id="live-log"></div>
   </div>
 
+  <div class="card hidden" id="offseason-panel">
+    <div id="offseason-panel-content"></div>
+  </div>
+
   <div class="card" id="draft-gate">
     <div id="draft-gate-content"></div>
   </div>
@@ -818,7 +822,7 @@ function buildDefaultLeague(){
   return {
     version:2, players, teams,
     draftDone:false, draftReport:null, draft:null,
-    seasonNum:0, activeSeason:null,
+    seasonNum:0, activeSeason:null, offseason:null,
     careerStats:{}, history:[]
   };
 }
@@ -1199,7 +1203,10 @@ function finalizeSeasonStats(){
 }
 
 // ---- Offseason: Time economy + free agency, run once per completed season ----
-function runFreeAgencyAndAdvance(){
+// Precomputes the whole offseason plan (who becomes a free agent, their FA rating, and the full
+// reverse-standings assignment sequence -- "passes", same idea as draft rounds) without touching
+// any real team roster yet, so it can be revealed pick-by-pick just like the draft.
+function buildOffseasonBoard(){
   const s = league.activeSeason;
   const standings = s.regularStandingsSnapshot;
 
@@ -1216,7 +1223,6 @@ function runFreeAgencyAndAdvance(){
   const removedFromTeam = {};
   league.teams.forEach(t=>removedFromTeam[t.id]=[]);
   const faPoolSet = new Set();
-
   league.teams.forEach(t=>{
     const mustGoPid = teamMinPid[t.id];
     faPoolSet.add(mustGoPid);
@@ -1230,37 +1236,62 @@ function runFreeAgencyAndAdvance(){
     });
   });
 
-  league.teams.forEach(t=>{
-    const removedSet = new Set(removedFromTeam[t.id]);
-    t.playerIds = t.playerIds.filter(pid=>!removedSet.has(pid));
-  });
-
   const faRatings={};
   faPoolSet.forEach(pid=>{
     const p=league.players[pid];
     faRatings[pid] = (p.off+p.def)*(Math.random()+1);
   });
 
+  const virtualCount = {};
+  league.teams.forEach(t=> virtualCount[t.id] = t.playerIds.length - removedFromTeam[t.id].length);
+
   const reverseOrder = standings.slice().reverse().map(r=>r.id); // worst team first
   let pool = Array.from(faPoolSet);
-  const faReport=[];
-  let safety=0;
-  while(pool.length>0 && league.teams.some(t=>t.playerIds.length<6) && safety++<3000){
+  const assignments = [];
+  let pass = 0, safety=0;
+  while(pool.length>0 && Object.values(virtualCount).some(c=>c<6) && safety++<3000){
+    pass++;
     for(const teamId of reverseOrder){
       if(pool.length===0) break;
-      const team = league.teams.find(t=>t.id===teamId);
-      if(team.playerIds.length>=6) continue;
+      if(virtualCount[teamId]>=6) continue;
       pool.sort((a,b)=>faRatings[b]-faRatings[a]);
       const pid = pool.shift();
-      team.playerIds.push(pid);
-      league.players[pid].teamId = teamId;
-      faReport.push({teamId, playerId:pid, rating:faRatings[pid]});
+      assignments.push({index:assignments.length, pass, teamId, playerId:pid, rating:faRatings[pid]});
+      virtualCount[teamId]++;
     }
   }
-
+  return { threshold, faPoolIds: Array.from(faPoolSet), assignments, removedFromTeam };
+}
+function startOffseason(){
+  if(league.offseason) return;
+  if(!league.activeSeason || !league.activeSeason.playoffs || !league.activeSeason.playoffs.complete) return;
+  const board = buildOffseasonBoard();
+  league.teams.forEach(t=>{
+    const removedSet = new Set(board.removedFromTeam[t.id]);
+    t.playerIds = t.playerIds.filter(pid=>!removedSet.has(pid));
+  });
+  board.faPoolIds.forEach(pid=> league.players[pid].teamId=null);
+  league.offseason = { threshold:board.threshold, assignments:board.assignments, nextIndex:0 };
+  disableSimButtons(true);
+  saveLeague();
+  render();
+}
+function applyOffseasonPick(){
+  const off = league.offseason;
+  if(!off || off.nextIndex>=off.assignments.length) return;
+  const a = off.assignments[off.nextIndex];
+  const team = league.teams.find(t=>t.id===a.teamId);
+  team.playerIds.push(a.playerId);
+  league.players[a.playerId].teamId = a.teamId;
+  off.nextIndex++;
+  if(off.nextIndex>=off.assignments.length) finishOffseason();
+}
+function finishOffseason(){
+  const off = league.offseason;
+  const s = league.activeSeason;
   // Time evolves for EVERY player based on their time value before this offseason.
   Object.values(league.players).forEach(p=>{
-    if(p.time<=threshold) p.time = Math.random()*5;
+    if(p.time<=off.threshold) p.time = Math.random()*5;
     else p.time -= 1;
   });
   // Fresh season-opening variance around each player's fixed base ratings.
@@ -1268,10 +1299,54 @@ function runFreeAgencyAndAdvance(){
     p.off = rollSeasonRating(p.baseOff, p.grade);
     p.def = rollSeasonRating(p.baseDef, p.grade);
   });
-
   const histEntry = league.history.find(h=>h.seasonNum===s.seasonNum);
-  if(histEntry) histEntry.offseasonReport = { threshold, faCount: faPoolSet.size, faReport };
+  if(histEntry){
+    histEntry.offseasonReport = {
+      threshold: off.threshold, faCount: off.assignments.length,
+      faReport: off.assignments.map(a=>({teamId:a.teamId, playerId:a.playerId, rating:a.rating}))
+    };
+  }
+  league.offseason = null;
+  startSeason();
+}
+function offseasonNextPickBtn(){
+  if(!league.offseason) return;
+  applyOffseasonPick();
   saveLeague();
+  render();
+}
+function offseasonNextRoundBtn(){
+  if(!league.offseason) return;
+  const startPass = league.offseason.assignments[league.offseason.nextIndex].pass;
+  while(league.offseason && league.offseason.nextIndex<league.offseason.assignments.length && league.offseason.assignments[league.offseason.nextIndex].pass===startPass){
+    applyOffseasonPick();
+  }
+  saveLeague();
+  render();
+}
+function offseasonSkipToEndBtn(){
+  while(league.offseason && league.offseason.nextIndex<league.offseason.assignments.length){
+    applyOffseasonPick();
+  }
+  saveLeague();
+  render();
+}
+// Used by "Run N seasons", where pacing doesn't apply -- builds the board and applies every
+// assignment in one shot, then finishOffseason() (time/rating reroll, history, next season).
+function runOffseasonInstant(){
+  const board = buildOffseasonBoard();
+  league.teams.forEach(t=>{
+    const removedSet = new Set(board.removedFromTeam[t.id]);
+    t.playerIds = t.playerIds.filter(pid=>!removedSet.has(pid));
+  });
+  board.faPoolIds.forEach(pid=> league.players[pid].teamId=null);
+  board.assignments.forEach(a=>{
+    const team = league.teams.find(t=>t.id===a.teamId);
+    team.playerIds.push(a.playerId);
+    league.players[a.playerId].teamId = a.teamId;
+  });
+  league.offseason = { threshold:board.threshold, assignments:board.assignments, nextIndex:board.assignments.length };
+  finishOffseason();
 }
 
 // ---- Persistent sim-bar: sits above the tabs (sticky) so sim controls stay reachable and
@@ -1302,10 +1377,13 @@ function renderSimBar(){
       <button class="btn small sim-btn" onclick="watchNextPlayoffGameBtn()">Watch next</button>
       <button class="btn secondary small sim-btn" onclick="simNextPlayoffGameBtn()">Sim next</button>
       <button class="btn secondary small sim-btn" onclick="simRestOfPlayoffsBtn()">Sim rest of playoffs</button>`;
+  } else if(league.offseason){
+    statusHtml = `<b>Season ${s.seasonNum} complete</b> — ${teamText(s.playoffs.champion)} are champions. Free agency is underway, see the panel above.`;
+    controlsHtml = '';
   } else {
     statusHtml = `<b>Season ${s.seasonNum} complete</b> — ${teamText(s.playoffs.champion)} are champions`;
     controlsHtml = `
-      <button class="btn sim-btn" onclick="startNextSeasonBtn()">Run Offseason &amp; Start Season ${s.seasonNum+1}</button>
+      <button class="btn sim-btn" onclick="startNextSeasonBtn()">Start Offseason</button>
       <input type="number" class="num-input" id="n-seasons" min="1" max="10" value="3">
       <button class="btn secondary sim-btn" onclick="runNSeasonsBtn(document.getElementById('n-seasons').value)">Run N seasons</button>`;
   }
@@ -1456,8 +1534,7 @@ async function runNSeasonsBtn(nRaw){
         await new Promise(r=>setTimeout(r,0));
       }
     }
-    runFreeAgencyAndAdvance();
-    if(i<n-1) startSeason();
+    runOffseasonInstant(); // rerolls ratings, attaches the history report, and starts the next season
   }
   saveLeague();
   hideProgress();
@@ -1465,10 +1542,7 @@ async function runNSeasonsBtn(nRaw){
   render();
 }
 function startNextSeasonBtn(){
-  if(!league.activeSeason || !league.activeSeason.playoffs || !league.activeSeason.playoffs.complete) return;
-  runFreeAgencyAndAdvance();
-  startSeason();
-  render();
+  startOffseason();
 }
 
 // ---- Live watch mode: same tick engine, driven interactively ----
@@ -1651,6 +1725,24 @@ function teamTextColor(name){ return TEAM_TEXT_COLOR_OVERRIDE[name] || teamColor
 function teamText(id){ const name=teamName(id); return `<span style="color:${teamTextColor(name)}">${escapeHtml(name)}</span>`; }
 function teamTextByName(name){ return `<span style="color:${teamTextColor(name)}">${escapeHtml(name)}</span>`; }
 function teamDot(id){ return `<span class="dot" style="background:${teamColor(id)}"></span>`; }
+function teamAbbr(id){ return teamName(id).split(' ')[0].slice(0,3).toUpperCase(); }
+function teamAbbrSpan(id){
+  return `<span style="color:${teamTextColor(teamName(id))};font-weight:600;">${teamAbbr(id)}</span>`;
+}
+// Shared by the draft gate and the offseason panel: a "slot" row is a team waiting on a pick
+// (just its abbreviation) or one that already has it this round/pass (abbreviation + player +
+// Off + Def). A "board" row is one still-available player, in the same Name Off Def shape.
+function slotRowHtml(teamId, filledPlayer){
+  const abbr = teamAbbrSpan(teamId);
+  if(!filledPlayer) return `<div class="log-entry dim">${abbr}</div>`;
+  return `<div class="log-entry">${abbr} ${nameSpan(filledPlayer.name, teamColor(teamId))} ${filledPlayer.off} ${filledPlayer.def}</div>`;
+}
+function boardRowHtml(p){
+  return `<div class="log-entry">${escapeHtml(p.name)} ${p.off} ${p.def}</div>`;
+}
+function undraftedBoard(){
+  return Object.values(league.players).filter(p=>!p.teamId).sort((a,b)=>(b.off+b.def)-(a.off+a.def));
+}
 
 // ---- Season tab ----
 function renderSeasonTab(){
@@ -1673,10 +1765,10 @@ function renderSeasonTab(){
   card.innerHTML = html;
 
   const off = document.getElementById('offseason-card');
-  if(s.playoffs && s.playoffs.complete){
+  if(s.playoffs && s.playoffs.complete && !league.offseason){
     off.classList.remove('hidden');
     off.innerHTML = `<h2>Offseason</h2>
-      <div class="report-block">The Time/free-agency mechanic runs once you click "Run Offseason &amp; Start Season ${s.seasonNum+1}" in the bar above.</div>`;
+      <div class="report-block">Click "Start Offseason" in the bar above to run free agency pick-by-pick, same as the draft.</div>`;
   } else {
     off.classList.add('hidden');
   }
@@ -2005,6 +2097,12 @@ function renderDraftGate(){
   }
   const d = league.draft;
   const nextPick = d.picks[d.nextPickIndex];
+  const roundPicks = d.picks.filter(pk=>pk.round===nextPick.round);
+  const leftRows = roundPicks.map(pk=>{
+    const applied = (pk.pick-1) < d.nextPickIndex;
+    return slotRowHtml(pk.teamId, applied ? league.players[pk.playerId] : null);
+  }).join('');
+  const rightRows = undraftedBoard().map(boardRowHtml).join('') || '<div class="dim">Board is empty.</div>';
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
       <h2 style="margin-bottom:0;">Draft in progress</h2>
@@ -2017,31 +2115,57 @@ function renderDraftGate(){
     </div>
     <div class="two-col">
       <div>
-        <h2 style="font-size:14px;margin-bottom:6px;">Picks so far</h2>
-        <div class="log" id="draft-live-log" style="max-height:360px;"></div>
+        <h2 style="font-size:14px;margin-bottom:6px;">This round's slots</h2>
+        <div class="log" style="max-height:400px;">${leftRows}</div>
       </div>
       <div>
-        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(ranked by base Off+Def)</span></h2>
-        <div class="log" id="draft-board-list" style="max-height:360px;"></div>
+        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(Off / Def)</span></h2>
+        <div class="log" style="max-height:400px;">${rightRows}</div>
       </div>
     </div>
   `;
-  const logEl = document.getElementById('draft-live-log');
-  logEl.innerHTML = d.picks.slice(0, d.nextPickIndex).map(pk=>
-    `<div class="log-entry">R${pk.round} P${pk.pick} — ${teamText(pk.teamId)} select <b>${escapeHtml(league.players[pk.playerId].name)}</b> <span class="dim">(value ${pk.value.toFixed(1)})</span></div>`
-  ).join('') || '<div class="dim">No picks yet.</div>';
-  logEl.scrollTop = logEl.scrollHeight;
+}
 
-  const board = Object.values(league.players).filter(p=>!p.teamId)
-    .sort((a,b)=> (b.baseOff+b.baseDef)-(a.baseOff+a.baseDef));
-  document.getElementById('draft-board-list').innerHTML = board.map(p=>
-    `<div class="log-entry">${escapeHtml(p.name)} <span class="dim">— G${p.grade}, ${p.baseOff}/${p.baseDef} (${p.baseOff+p.baseDef})</span></div>`
-  ).join('') || '<div class="dim">Board is empty.</div>';
+// ---- Offseason free-agency panel ----
+function renderOffseasonPanel(){
+  const panel = document.getElementById('offseason-panel');
+  const off = league.offseason;
+  if(!off){ panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  const nextA = off.assignments[off.nextIndex];
+  const passAssignments = off.assignments.filter(a=>a.pass===nextA.pass);
+  const leftRows = passAssignments.map(a=>{
+    const applied = a.index < off.nextIndex;
+    return slotRowHtml(a.teamId, applied ? league.players[a.playerId] : null);
+  }).join('');
+  const rightRows = undraftedBoard().map(boardRowHtml).join('') || '<div class="dim">Board is empty.</div>';
+  document.getElementById('offseason-panel-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+      <h2 style="margin-bottom:0;">Free agency</h2>
+      <div class="dim" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;">Pick ${off.nextIndex+1} of ${off.assignments.length} &middot; Pass ${nextA.pass}</div>
+    </div>
+    <div class="btn-row" style="margin-bottom:14px;">
+      <button class="btn small" onclick="offseasonNextPickBtn()">Next pick — on the clock: ${teamText(nextA.teamId)}</button>
+      <button class="btn secondary small" onclick="offseasonNextRoundBtn()">Next pass</button>
+      <button class="btn secondary small" onclick="offseasonSkipToEndBtn()">Sim rest of free agency</button>
+    </div>
+    <div class="two-col">
+      <div>
+        <h2 style="font-size:14px;margin-bottom:6px;">This pass's slots</h2>
+        <div class="log" style="max-height:400px;">${leftRows}</div>
+      </div>
+      <div>
+        <h2 style="font-size:14px;margin-bottom:6px;">On the board <span class="dim" style="font-weight:400;">(Off / Def)</span></h2>
+        <div class="log" style="max-height:400px;">${rightRows}</div>
+      </div>
+    </div>
+  `;
 }
 
 // ---- Master render ----
 function render(){
   renderSimBar();
+  renderOffseasonPanel();
   if(!league.draftDone){
     document.getElementById('draft-gate').classList.remove('hidden');
     document.getElementById('app-root').classList.add('hidden');
