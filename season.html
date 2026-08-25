@@ -92,8 +92,6 @@
   .live-clock{font-family:'JetBrains Mono',monospace;font-size:18px;background:var(--ink);border:1px solid rgba(238,242,232,.15);border-radius:8px;padding:8px 14px;text-align:center;}
   .live-pitch{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:12px;}
   .live-pitch .zone{background:rgba(238,242,232,.05);border:1px solid rgba(238,242,232,.15);border-radius:6px;min-height:34px;position:relative;}
-  .live-pitch .zone.atk-home{background:rgba(177,2,2,.14);border-color:rgba(177,2,2,.4);}
-  .live-pitch .zone.atk-away{background:rgba(10,83,168,.14);border-color:rgba(10,83,168,.4);}
   .live-pitch .ball{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--amber);}
   .live-final{text-align:center;font-family:'Anton',sans-serif;font-size:20px;color:var(--amber);margin:10px 0;}
 
@@ -119,6 +117,10 @@
       <div class="live-team"><div class="nm" id="live-away-name"></div><div class="sc" id="live-away-score">0</div></div>
     </div>
     <div class="live-pitch" id="live-pitch"></div>
+    <div id="live-scorers-panel" style="margin-bottom:12px;font-size:13px;">
+      <div style="text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:var(--chalk-dim);margin-bottom:6px;">Scorers</div>
+      <div id="live-scorers-list" style="color:var(--chalk-dim);">No goals yet.</div>
+    </div>
     <div class="live-final hidden" id="live-final"></div>
     <div class="btn-row" id="live-controls" style="justify-content:center;margin-bottom:12px;">
       <button class="btn small" onclick="liveAdvance()">Advance</button>
@@ -364,6 +366,16 @@ function weightedPick(players, weightTable){
 function keeperOf(team){return team.players.find(p=>p.isGK);}
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function nameSpan(name, color){
+  return `<span style="color:${color}">${escapeHtml(name)}</span>`;
+}
+function hexToRgbTriplet(hex){
+  const v = hex.replace('#','');
+  return `${parseInt(v.slice(0,2),16)},${parseInt(v.slice(2,4),16)},${parseInt(v.slice(4,6),16)}`;
+}
+function formatGoalMinute(ticks){
+  return `${Math.ceil(Math.round(ticks*15)/60)}'`;
 }
 function formatClock(ticks){
   const totalSeconds = Math.round(ticks*15);
@@ -660,6 +672,11 @@ function matchTick(st){
     result: aTotal>dTotal ? 'win' : (dTotal>aTotal ? 'loss' : 'tie')
   });
 
+  const attName = nameSpan(attacker.name, teamObj.color);
+  const defName = nameSpan(defender.name, oppObj.color);
+  const teamName_ = nameSpan(teamObj.name, teamObj.color);
+  const oppName_ = nameSpan(oppObj.name, oppObj.color);
+
   let text='';
   if(aTotal>dTotal){
     if(isShotStep){
@@ -667,25 +684,25 @@ function matchTick(st){
       const assist = (st.assistCandidate && st.assistCandidate.playerId!==attacker.id) ? st.assistCandidate : null;
       st.goals.push({minute:st.minute, teamKey:team, scorerId:attacker.id, assistId: assist?assist.playerId:null});
       st.zone=2; st.inBox=false; st.possession=opp; st.assistCandidate=null;
-      text = `GOAL! ${attacker.name} (${teamObj.name}) — ${st.score.home}-${st.score.away}`;
+      text = `GOAL! ${attName} (${teamName_}) — ${st.score.home}-${st.score.away}`;
     } else if(isAttackZone){
       st.inBox=true; st.assistCandidate={playerId:attacker.id};
-      text = `${attacker.name} beats ${defender.name} and gets into the box, one-on-one with the keeper.`;
+      text = `${attName} beats ${defName} and gets into the box, one-on-one with the keeper.`;
     } else {
       st.zone += dir;
-      text = `${attacker.name} beats ${defender.name} — ${teamObj.name} push forward.`;
+      text = `${attName} beats ${defName} — ${teamName_} push forward.`;
     }
   } else if(dTotal>aTotal){
     if(isShotStep){
       st.saves.push({minute:st.minute, teamKey:opp, gkId:defender.id});
       st.zone = st.zone-dir; st.inBox=false; st.possession=opp; st.assistCandidate=null;
-      text = `${defender.name} saves it! ${oppObj.name} clear their lines.`;
+      text = `${defName} saves it! ${oppName_} clear their lines.`;
     } else if(isAttackZone){
       st.possession=opp;
-      text = `${defender.name} shuts down ${attacker.name} — ${oppObj.name} win it back, deep in their own third.`;
+      text = `${defName} shuts down ${attName} — ${oppName_} win it back, deep in their own third.`;
     } else {
       st.possession=opp;
-      text = `${defender.name} wins the ball off ${attacker.name} — turnover to ${oppObj.name}.`;
+      text = `${defName} wins the ball off ${attName} — turnover to ${oppName_}.`;
     }
   } else {
     text = isShotStep ? `Blocked on the line! Still scrambling.` : `50-50 ball, contested — play continues.`;
@@ -724,6 +741,7 @@ function takePenaltyKick(st){
   const p = st.penalties;
   if(!p || p.finished) return;
   const team = p.kickingTeam, opp = team==='home'?'away':'home';
+  const teamObj = team==='home'?st.homeMatch:st.awayMatch;
   const oppObj = opp==='home'?st.homeMatch:st.awayMatch;
   const kicker = p.order[team][p.idx[team]%6];
   const keeper = keeperOf(oppObj);
@@ -732,7 +750,9 @@ function takePenaltyKick(st){
   const scored = aTotal>dTotal;
   p.taken[team]++; p.idx[team]++;
   if(scored) p.score[team]++;
-  st.lastText = scored ? `${kicker.name} scores! (${p.score.home}-${p.score.away})` : `${keeper.name} saves it! ${kicker.name}'s penalty is stopped.`;
+  const kickerName = nameSpan(kicker.name, teamObj.color);
+  const keeperName = nameSpan(keeper.name, oppObj.color);
+  st.lastText = scored ? `${kickerName} scores! (${p.score.home}-${p.score.away})` : `${keeperName} saves it! ${kickerName}'s penalty is stopped.`;
   checkPenaltyOutcome(p);
   if(!p.finished) p.kickingTeam = opp;
   if(p.finished){ st.over = true; }
@@ -951,6 +971,7 @@ function simulateOneGame(homeTeamId, awayTeamId, decisive){
   const awayPlayers = awayTeam.playerIds.map(pid=>({...league.players[pid]}));
   const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 3);
   teamA.name = homeTeam.name; teamB.name = awayTeam.name;
+  teamA.color = homeTeam.color; teamB.color = awayTeam.color;
   const result = runMatchToCompletion(teamA, teamB, decisive);
   result.homeFormation = formationA;
   result.awayFormation = formationB;
@@ -1456,8 +1477,9 @@ function startWatch(homeTeamId, awayTeamId, decisive, ctx){
   const awayPlayers = awayTeam.playerIds.map(pid=>({...league.players[pid]}));
   const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 3);
   teamA.name = homeTeam.name; teamB.name = awayTeam.name;
+  teamA.color = homeTeam.color; teamB.color = awayTeam.color;
   const st = createMatchState(teamA, teamB, decisive);
-  liveWatch = {st, ctx, homeTeamName:homeTeam.name, awayTeamName:awayTeam.name, formationA, formationB};
+  liveWatch = {st, ctx, homeTeamId, awayTeamId, homeTeamName:homeTeam.name, awayTeamName:awayTeam.name, formationA, formationB};
   document.getElementById('live-panel').classList.remove('hidden');
   document.getElementById('live-controls').classList.remove('hidden');
   document.getElementById('live-final').classList.add('hidden');
@@ -1488,7 +1510,7 @@ function appendLiveLog(){
   if(!liveWatch.st.lastText) return;
   const log=document.getElementById('live-log');
   const div=document.createElement('div'); div.className='log-entry';
-  div.textContent = `${formatClock(liveWatch.st.minute)} — ${liveWatch.st.lastText}`;
+  div.innerHTML = `${formatClock(liveWatch.st.minute)} — ${liveWatch.st.lastText}`;
   log.appendChild(div); log.scrollTop=log.scrollHeight;
 }
 function liveAdvance(){
@@ -1568,12 +1590,29 @@ function renderLive(){
   document.getElementById('live-clock').textContent = clockTxt;
   const pitch = document.getElementById('live-pitch');
   pitch.innerHTML='';
+  const homeRgb = hexToRgbTriplet(teamColor(liveWatch.homeTeamId));
+  const awayRgb = hexToRgbTriplet(teamColor(liveWatch.awayTeamId));
   for(let i=0;i<5;i++){
     const z=document.createElement('div');
-    z.className='zone'+(i===0?' atk-away':i===4?' atk-home':'');
+    z.className='zone';
+    if(i===0) z.style.cssText = `background:rgba(${awayRgb},.16);border-color:rgba(${awayRgb},.45);`;
+    else if(i===4) z.style.cssText = `background:rgba(${homeRgb},.16);border-color:rgba(${homeRgb},.45);`;
     if(st.zone===i && st.stage!=='penalties'){ const ball=document.createElement('div'); ball.className='ball'; z.appendChild(ball); }
     pitch.appendChild(z);
   }
+  renderLiveScorers();
+}
+function renderLiveScorers(){
+  const st = liveWatch.st;
+  const el = document.getElementById('live-scorers-list');
+  if(!st.goals.length){ el.textContent = 'No goals yet.'; return; }
+  el.innerHTML = st.goals.map(g=>{
+    const teamMatch = g.teamKey==='home' ? st.homeMatch : st.awayMatch;
+    const scorer = teamMatch.players.find(p=>p.id===g.scorerId);
+    const assist = g.assistId ? teamMatch.players.find(p=>p.id===g.assistId) : null;
+    const assistPart = assist ? ` (${nameSpan(assist.name, teamMatch.color)})` : '';
+    return `<div>${formatGoalMinute(g.minute)} ${nameSpan(scorer.name, teamMatch.color)}${assistPart}</div>`;
+  }).join('');
 }
 
 // ---- Tabs ----
