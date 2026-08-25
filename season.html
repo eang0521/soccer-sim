@@ -48,6 +48,9 @@
 
   table.data-table{width:100%;border-collapse:collapse;font-size:13px;}
   table.data-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--chalk-dim);padding:6px 8px;border-bottom:1px solid rgba(238,242,232,.15);}
+  table.data-table th.sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+  table.data-table th.sortable:hover{color:var(--chalk);}
+  table.data-table th.sortable.active{color:var(--amber);}
   table.data-table td{padding:6px 8px;border-bottom:1px solid rgba(238,242,232,.06);}
   table.data-table th:not(:first-child):not(:nth-child(2)),
   table.data-table td:not(:first-child):not(:nth-child(2)){text-align:center;}
@@ -219,7 +222,7 @@
         </div>
         <div class="table-scroll">
           <table class="data-table">
-            <thead><tr><th>Player</th><th>Team</th><th>Off Bt</th><th>Off W%</th><th>Off +/-</th><th>Def Bt</th><th>Def W%</th><th>Def +/-</th><th>G</th><th>A</th><th>Sv</th></tr></thead>
+            <thead id="advanced-stats-head"></thead>
             <tbody id="advanced-stats-body"></tbody>
           </table>
         </div>
@@ -237,7 +240,7 @@
         <h2 style="font-size:15px;margin-bottom:8px;">Season by season</h2>
         <div class="table-scroll">
           <table class="data-table">
-            <thead><tr><th>Season</th><th>Team</th><th>Record</th><th>Rank</th><th>Playoffs</th><th>G</th><th>A</th><th>Sv</th><th>Off W%</th><th>Off +/-</th><th>Def W%</th><th>Def +/-</th></tr></thead>
+            <thead><tr><th>Season</th><th>Team</th><th>Record</th><th>Rank</th><th>Playoffs</th><th>G</th><th>A</th><th>Sv</th><th>Off W%</th><th>Def W%</th></tr></thead>
             <tbody id="player-seasons-body"></tbody>
           </table>
         </div>
@@ -1696,6 +1699,31 @@ function renderLiveScorers(){
 
 // ---- Tabs ----
 let activeTab = 'season';
+const ADV_STATS_COLUMNS = [
+  {key:'name', label:'Player'}, {key:'teamId', label:'Team'},
+  {key:'offBattles', label:'Off Bt'}, {key:'offWinPct', label:'Off W%'},
+  {key:'defBattles', label:'Def Bt'}, {key:'defWinPct', label:'Def W%'},
+  {key:'goals', label:'G'}, {key:'assists', label:'A'}, {key:'saves', label:'Sv'}
+];
+let advStatsSort = {key:'offWinPct', dir:'desc'};
+function setAdvStatsSort(key){
+  if(advStatsSort.key===key) advStatsSort.dir = advStatsSort.dir==='desc' ? 'asc' : 'desc';
+  else advStatsSort = {key, dir:(key==='name'||key==='teamId') ? 'asc' : 'desc'};
+  renderStats();
+}
+function advStatsCompare(a,b,key,dir){
+  if(key==='name') return dir==='asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+  if(key==='teamId'){
+    const na=teamName(a.teamId), nb=teamName(b.teamId);
+    return dir==='asc' ? na.localeCompare(nb) : nb.localeCompare(na);
+  }
+  const va=a[key], vb=b[key];
+  const nullA = va===null||va===undefined, nullB = vb===null||vb===undefined;
+  if(nullA && nullB) return 0;
+  if(nullA) return 1;  // no-data rows always sort last, regardless of direction
+  if(nullB) return -1;
+  return dir==='asc' ? va-vb : vb-va;
+}
 function switchTab(tab){
   activeTab = tab;
   document.querySelectorAll('.tabbtn[data-tab]').forEach(b=> b.classList.toggle('active', b.dataset.tab===tab));
@@ -1926,17 +1954,19 @@ function renderTeamsTab(){
 
 // ---- Stats tab ----
 function fmtPct(v){ return v===null ? '—' : v.toFixed(0)+'%'; }
-function fmtSigned(v){ if(v===null) return '—'; const s=v.toFixed(1); return v>0 ? '+'+s : s; }
 function teamInSnapshot(teamsSnapshot, playerId){
   return teamsSnapshot.find(t=> t.players.some(p=>p.id===playerId)) || null;
 }
+// Win% is an actual outcome (wins / battles). A +/- vs. each player's OWN expected-win-prob
+// (their own rating implies) was dropped as a displayed stat -- summed over a season it's really
+// just measuring roll variance, not anything repeatable about the player, so it read as "how
+// lucky" rather than "how good." offExpWins/defExpWins are still tracked underneath in case a
+// better use for them comes up later; they just don't surface here anymore.
 function withDerivedBattleStats(r){
   return {
     ...r,
     offWinPct: r.offBattles ? r.offWins/r.offBattles*100 : null,
-    defWinPct: r.defBattles ? r.defWins/r.defBattles*100 : null,
-    offValue: r.offBattles ? r.offWins-r.offExpWins : null,
-    defValue: r.defBattles ? r.defWins-r.defExpWins : null
+    defWinPct: r.defBattles ? r.defWins/r.defBattles*100 : null
   };
 }
 function renderStats(){
@@ -1968,15 +1998,20 @@ function renderStats(){
   document.getElementById('stats-assists').innerHTML = top('assists');
   document.getElementById('stats-saves').innerHTML = top('saves');
 
-  const advRows = withNames.slice().sort((a,b)=>(b.offValue===null?-999:b.offValue)-(a.offValue===null?-999:a.offValue));
+  document.getElementById('advanced-stats-head').innerHTML = '<tr>' + ADV_STATS_COLUMNS.map(c=>{
+    const active = advStatsSort.key===c.key;
+    const arrow = active ? (advStatsSort.dir==='asc' ? ' &#9650;' : ' &#9660;') : '';
+    return `<th class="sortable${active?' active':''}" onclick="setAdvStatsSort('${c.key}')">${c.label}${arrow}</th>`;
+  }).join('') + '</tr>';
+  const advRows = withNames.slice().sort((a,b)=> advStatsCompare(a,b,advStatsSort.key,advStatsSort.dir));
   document.getElementById('advanced-stats-body').innerHTML = advRows.map(p=>`
     <tr>
       <td>${escapeHtml(p.name)}</td>
       <td>${teamText(p.teamId)}</td>
-      <td>${p.offBattles}</td><td>${fmtPct(p.offWinPct)}</td><td>${fmtSigned(p.offValue)}</td>
-      <td>${p.defBattles}</td><td>${fmtPct(p.defWinPct)}</td><td>${fmtSigned(p.defValue)}</td>
+      <td>${p.offBattles}</td><td>${fmtPct(p.offWinPct)}</td>
+      <td>${p.defBattles}</td><td>${fmtPct(p.defWinPct)}</td>
       <td>${p.goals}</td><td>${p.assists}</td><td>${p.saves}</td>
-    </tr>`).join('') || `<tr><td colspan="11" class="dim">No data yet.</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="9" class="dim">No data yet.</td></tr>`;
 }
 
 // ---- Players tab ----
@@ -2011,8 +2046,8 @@ function renderPlayersTab(){
   summaryEl.innerHTML = `
     <div><b>Career</b> — ${career.games} games (${career.gkGames} as GK, ${career.cleanSheets} clean sheets, ${career.conceded} conceded)</div>
     <div>Goals ${career.goals} &middot; Assists ${career.assists} &middot; Saves ${career.saves}</div>
-    <div>Off battles ${career.offBattles} &middot; Off W% ${fmtPct(career.offWinPct)} &middot; Off +/- ${fmtSigned(career.offValue)}</div>
-    <div>Def battles ${career.defBattles} &middot; Def W% ${fmtPct(career.defWinPct)} &middot; Def +/- ${fmtSigned(career.defValue)}</div>
+    <div>Off battles ${career.offBattles} &middot; Off W% ${fmtPct(career.offWinPct)}</div>
+    <div>Def battles ${career.defBattles} &middot; Def W% ${fmtPct(career.defWinPct)}</div>
   `;
 
   const rows = league.history
@@ -2030,11 +2065,10 @@ function renderPlayersTab(){
         <td>${standRow ? standRow.rk : '—'}</td>
         <td>${playoffLabel}</td>
         <td>${stat.goals}</td><td>${stat.assists}</td><td>${stat.saves}</td>
-        <td>${fmtPct(stat.offWinPct)}</td><td>${fmtSigned(stat.offValue)}</td>
-        <td>${fmtPct(stat.defWinPct)}</td><td>${fmtSigned(stat.defValue)}</td>
+        <td>${fmtPct(stat.offWinPct)}</td><td>${fmtPct(stat.defWinPct)}</td>
       </tr>`;
     }).join('');
-  bodyEl.innerHTML = rows || `<tr><td colspan="12" class="dim">No completed seasons yet.</td></tr>`;
+  bodyEl.innerHTML = rows || `<tr><td colspan="10" class="dim">No completed seasons yet.</td></tr>`;
 }
 
 // ---- Draft tab ----
