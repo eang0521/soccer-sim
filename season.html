@@ -8,70 +8,40 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --turf-dark:#0f3320;
-    --turf-light:#154027;
-    --chalk:#eef2e8;
-    --chalk-dim:#b9c4b3;
-    --amber:#e8b23c;
-    --ink:#081a10;
-    --card:#123422;
+    --turf-dark:#0f3320; --turf-light:#154027; --chalk:#eef2e8; --chalk-dim:#b9c4b3;
+    --amber:#e8b23c; --ink:#081a10; --card:#123422; --home:#b10202; --away:#0a53a8;
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:'Inter',sans-serif;
-    background:
-      repeating-linear-gradient(90deg, var(--turf-dark) 0 60px, var(--turf-light) 60px 120px);
-    color:var(--chalk);
-    min-height:100vh;
-    padding:24px 16px 60px;
-  }
-  h1,h2,h3{font-family:'Anton',sans-serif; font-weight:400; letter-spacing:.03em; margin:0;}
-  .wrap{max-width:1080px;margin:0 auto;}
+  body{margin:0;font-family:'Inter',sans-serif;background:repeating-linear-gradient(90deg, var(--turf-dark) 0 60px, var(--turf-light) 60px 120px);color:var(--chalk);min-height:100vh;padding:24px 16px 60px;}
+  h1,h2,h3{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.03em;margin:0;}
+  .wrap{max-width:1120px;margin:0 auto;}
   .subnav{text-align:center;margin-bottom:10px;}
   .subnav a{color:var(--amber);text-decoration:none;font-size:13px;letter-spacing:.03em;}
   .subnav a:hover{text-decoration:underline;}
   .title{text-align:center;font-size:38px;color:var(--chalk);text-shadow:0 2px 0 rgba(0,0,0,.35);margin-bottom:4px;}
-  .subtitle{text-align:center;color:var(--chalk-dim);font-size:14px;margin-bottom:28px;letter-spacing:.04em;text-transform:uppercase;}
+  .subtitle{text-align:center;color:var(--chalk-dim);font-size:14px;margin-bottom:20px;letter-spacing:.04em;text-transform:uppercase;}
   .card{background:var(--card);border:1px solid rgba(238,242,232,.12);border-radius:10px;padding:20px 22px;margin-bottom:20px;}
-  .card h2{font-size:22px;margin-bottom:14px;}
+  .card h2{font-size:20px;margin-bottom:14px;}
   .hidden{display:none;}
   .dim{color:var(--chalk-dim);}
   .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;}
-  .btn{font-family:'Inter',sans-serif;font-weight:600;font-size:14px;background:var(--amber);color:#2a1c04;border:none;border-radius:7px;padding:12px 20px;cursor:pointer;letter-spacing:.02em;}
+  .btn{font-family:'Inter',sans-serif;font-weight:600;font-size:14px;background:var(--amber);color:#2a1c04;border:none;border-radius:7px;padding:11px 18px;cursor:pointer;letter-spacing:.02em;}
   .btn:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
   .btn.secondary{background:transparent;color:var(--chalk);border:1px solid rgba(238,242,232,.35);}
-  .btn.small{padding:8px 14px;font-size:13px;}
+  .btn.small{padding:7px 12px;font-size:12.5px;}
   .btn.danger{border-color:rgba(220,90,80,.5);color:#f3b3ac;}
-  .btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;}
-  .num-input{width:64px;background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.18);border-radius:6px;color:var(--chalk);padding:8px;font-size:13px;text-align:center;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+  .num-input{width:56px;background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.18);border-radius:6px;color:var(--chalk);padding:7px;font-size:13px;text-align:center;}
 
-  .setup-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
-  .paste-box textarea{width:100%;min-height:110px;background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.18);border-radius:6px;color:var(--chalk);font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px;resize:vertical;}
-  .paste-box .hint{font-size:11px;color:var(--chalk-dim);margin:4px 0 8px;}
-  .paste-status{font-size:11px;color:var(--chalk-dim);margin-top:4px;font-family:'JetBrains Mono',monospace;}
+  .topbar{display:flex;justify-content:flex-end;margin:-10px 0 14px;}
+  .progress-panel{position:sticky;top:8px;z-index:30;background:var(--ink);border:1px solid var(--amber);border-radius:8px;padding:10px 16px;margin-bottom:14px;font-family:'JetBrains Mono',monospace;font-size:12.5px;text-align:center;color:var(--amber);}
 
-  .setup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:16px;}
-  .team-setup-card{background:rgba(238,242,232,.04);border:1px solid rgba(238,242,232,.14);border-radius:8px;padding:14px;}
-  .team-setup-card .header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-  .team-setup-card input[type=color]{-webkit-appearance:none;appearance:none;border:none;width:24px;height:24px;border-radius:50%;padding:0;cursor:pointer;flex-shrink:0;}
-  .team-setup-card input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
-  .team-setup-card input[type=color]::-webkit-color-swatch{border:none;border-radius:50%;}
-  .team-name-input-sm{flex:1;min-width:0;font-family:'Anton',sans-serif;font-size:16px;background:transparent;border:none;border-bottom:2px solid rgba(238,242,232,.25);color:var(--chalk);padding:4px 2px;}
-  .team-name-input-sm:focus{outline:none;}
-  .formation-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;}
-  .formation-row label{color:var(--chalk-dim);text-transform:uppercase;letter-spacing:.05em;font-size:10px;}
-  .formation-row select{background:rgba(238,242,232,.08);border:1px solid rgba(238,242,232,.2);color:var(--chalk);border-radius:6px;padding:4px 6px;font-family:'JetBrains Mono',monospace;font-size:12px;}
-  .formation-row .fbreak{color:var(--chalk-dim);font-size:10px;font-family:'JetBrains Mono',monospace;}
-  .col-head-sm{display:grid;grid-template-columns:26px 1fr 44px 44px;gap:5px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--chalk-dim);margin-bottom:5px;}
-  .player-row{display:grid;grid-template-columns:26px 1fr 44px 44px;gap:5px;align-items:center;margin-bottom:5px;font-size:12px;}
-  .player-row .tag{font-family:'JetBrains Mono',monospace;color:var(--chalk-dim);font-size:10px;}
-  .player-row input[type=text]{background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.15);border-radius:5px;color:var(--chalk);padding:5px 6px;font-size:12px;font-family:'Inter',sans-serif;width:100%;}
-  .player-row input[type=number]{background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.15);border-radius:5px;color:var(--chalk);padding:5px 3px;font-size:12px;width:100%;text-align:center;}
-
-  .league-header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
-  .league-header .season-lbl{font-size:24px;}
-  .league-header .progress{font-size:12px;color:var(--chalk-dim);font-family:'JetBrains Mono',monospace;}
+  .tabbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .tabbtn{font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;background:rgba(238,242,232,.06);color:var(--chalk-dim);border:1px solid rgba(238,242,232,.15);border-radius:20px;padding:8px 14px;cursor:pointer;letter-spacing:.02em;}
+  .tabbtn.active{background:var(--amber);color:#2a1c04;border-color:var(--amber);}
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block;}
 
   table.data-table{width:100%;border-collapse:collapse;font-size:13px;}
   table.data-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--chalk-dim);padding:6px 8px;border-bottom:1px solid rgba(238,242,232,.15);}
@@ -80,112 +50,199 @@
   table.data-table td:not(:first-child):not(:nth-child(2)){text-align:center;}
   .table-scroll{overflow-x:auto;}
 
-  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;}
-  @media (max-width:640px){.two-col{grid-template-columns:1fr;}}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media (max-width:760px){.two-col,.three-col{grid-template-columns:1fr;}}
   .leaderboard{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.9;background:var(--ink);border-radius:8px;padding:10px 14px;}
   .leaderboard b{color:var(--chalk);}
 
-  .log{max-height:220px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.9;background:var(--ink);border-radius:8px;padding:10px 14px;margin-top:12px;}
+  .log{max-height:240px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.85;background:var(--ink);border-radius:8px;padding:10px 14px;}
   .log-entry{border-bottom:1px solid rgba(238,242,232,.06);padding:3px 0;}
   .log-entry:last-child{border-bottom:none;}
 
-  .champion-banner{text-align:center;font-family:'Anton',sans-serif;font-size:22px;color:var(--amber);margin-bottom:10px;letter-spacing:.03em;}
+  .fixture-row{display:grid;grid-template-columns:34px 1fr 50px 1fr 90px;gap:8px;align-items:center;font-size:13px;padding:5px 4px;border-bottom:1px solid rgba(238,242,232,.06);}
+  .fixture-row .side{display:flex;align-items:center;gap:6px;}
+  .fixture-row .side.away{justify-content:flex-end;text-align:right;}
+  .fixture-row .score{text-align:center;font-family:'JetBrains Mono',monospace;color:var(--amber);}
+  .slate-hd{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--chalk-dim);margin:14px 0 4px;}
+
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;}
+  .team-card{background:rgba(238,242,232,.04);border:1px solid rgba(238,242,232,.14);border-radius:8px;padding:12px 14px;}
+  .team-card .thead{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .team-card .thead b{font-family:'Anton',sans-serif;font-size:15px;font-weight:400;}
+  .team-card .record{font-size:11px;color:var(--chalk-dim);margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+  .roster-row{display:grid;grid-template-columns:1fr 30px 26px 26px 34px;gap:4px;font-size:11.5px;padding:2px 0;color:var(--chalk-dim);}
+  .roster-row.hd{text-transform:uppercase;letter-spacing:.04em;font-size:9px;}
+
+  .bracket-col{display:flex;flex-direction:column;gap:14px;}
+  .series-box{background:rgba(238,242,232,.05);border:1px solid rgba(238,242,232,.15);border-radius:7px;padding:10px 12px;font-size:12.5px;}
+  .series-box .lbl{font-size:10px;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+  .series-box .team-line{display:flex;justify-content:space-between;padding:2px 0;}
+  .series-box .team-line.winner{color:var(--amber);font-weight:600;}
+  .bracket-round-title{font-size:13px;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+
+  .live-panel{position:relative;}
+  .live-scoreboard{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;margin-bottom:14px;}
+  .live-team{text-align:center;}
+  .live-team .nm{font-size:14px;color:var(--chalk-dim);margin-bottom:4px;}
+  .live-team .sc{font-family:'Anton',sans-serif;font-size:42px;line-height:1;}
+  .live-clock{font-family:'JetBrains Mono',monospace;font-size:18px;background:var(--ink);border:1px solid rgba(238,242,232,.15);border-radius:8px;padding:8px 14px;text-align:center;}
+  .live-pitch{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:12px;}
+  .live-pitch .zone{background:rgba(238,242,232,.05);border:1px solid rgba(238,242,232,.15);border-radius:6px;min-height:34px;position:relative;}
+  .live-pitch .zone.atk-home{background:rgba(177,2,2,.14);border-color:rgba(177,2,2,.4);}
+  .live-pitch .zone.atk-away{background:rgba(10,83,168,.14);border-color:rgba(10,83,168,.4);}
+  .live-pitch .ball{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--amber);}
+  .live-final{text-align:center;font-family:'Anton',sans-serif;font-size:20px;color:var(--amber);margin:10px 0;}
+
+  .report-block{font-size:12.5px;color:var(--chalk-dim);line-height:1.7;margin-bottom:14px;}
+  .report-block b{color:var(--chalk);}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="subnav"><a href="index.html">&larr; Match Simulator</a></div>
   <div class="title">The League</div>
-  <div class="subtitle">96 players &middot; 16 teams &middot; multi-season dice simulation</div>
-  <div style="text-align:right;margin:-18px 0 14px;">
-    <button class="btn danger small" onclick="resetLeague()">Reset league</button>
+  <div class="subtitle">96 players &middot; 16 teams &middot; draft, seasons, and free agency</div>
+  <div class="topbar"><button class="btn danger small" onclick="resetLeague()">Reset league</button></div>
+
+  <div class="progress-panel hidden" id="progress-panel"><span id="progress-text"></span></div>
+
+  <div class="card live-panel hidden" id="live-panel">
+    <div class="live-scoreboard">
+      <div class="live-team"><div class="nm" id="live-home-name"></div><div class="sc" id="live-home-score">0</div></div>
+      <div class="live-clock" id="live-clock">0:00</div>
+      <div class="live-team"><div class="nm" id="live-away-name"></div><div class="sc" id="live-away-score">0</div></div>
+    </div>
+    <div class="live-pitch" id="live-pitch"></div>
+    <div class="live-final hidden" id="live-final"></div>
+    <div class="btn-row" id="live-controls" style="justify-content:center;margin-bottom:12px;">
+      <button class="btn small" onclick="liveAdvance()">Advance</button>
+      <button class="btn secondary small" onclick="liveSimUntilChance()">Sim to next chance</button>
+      <button class="btn secondary small" onclick="liveSimRest()">Sim rest of match</button>
+    </div>
+    <div class="btn-row" style="justify-content:center;margin-bottom:12px;">
+      <button class="btn secondary small" onclick="closeLive()">Close</button>
+    </div>
+    <div class="log" id="live-log"></div>
   </div>
 
-  <div class="card" id="setup-card">
-    <div class="setup-toolbar">
-      <h2>League setup</h2>
+  <div class="card" id="draft-gate">
+    <h2>Run the draft</h2>
+    <div class="report-block">
+      96 players, 16 teams. Each player's draft value is (Off + Def) &times; a random 1.00&ndash;2.00
+      multiplier. Draft order is randomized, then it's a straight snake draft from highest value
+      to lowest until every team has 6 players.
     </div>
-    <div style="font-size:13px;color:var(--chalk-dim);line-height:1.6;margin-bottom:14px;">
-      16 teams of 6, first player on each roster is the goalkeeper — exactly like the match
-      simulator. Edit players directly below, or paste all 96 at once (6 lines fill one team,
-      in the order the team cards appear).
+    <button class="btn" onclick="doRunDraft()">Run Draft</button>
+  </div>
+
+  <div class="hidden" id="app-root">
+    <div class="tabbar">
+      <button class="tabbtn" data-tab="season" onclick="switchTab('season')">Season</button>
+      <button class="tabbtn" data-tab="standings" onclick="switchTab('standings')">Standings</button>
+      <button class="tabbtn" data-tab="schedule" onclick="switchTab('schedule')">Schedule</button>
+      <button class="tabbtn" data-tab="playoffs" onclick="switchTab('playoffs')">Playoffs</button>
+      <button class="tabbtn" data-tab="teams" onclick="switchTab('teams')">Teams</button>
+      <button class="tabbtn" data-tab="stats" onclick="switchTab('stats')">Stats</button>
+      <button class="tabbtn" data-tab="draft" onclick="switchTab('draft')">Draft</button>
+      <button class="tabbtn" data-tab="history" onclick="switchTab('history')">History</button>
     </div>
-    <div class="paste-box">
-      <div class="hint">One player per line: name, then Off, then Def — tab or space separated. Up to 96 lines.</div>
-      <textarea id="league-paste-text" placeholder="Elijah&#9;8&#9;9&#10;Toby&#9;6&#9;10&#10;Joey A&#9;7&#9;8"></textarea>
-      <div class="btn-row">
-        <button class="btn secondary small" onclick="importLeaguePaste()">Import 96</button>
-        <button class="btn secondary small" onclick="randomizeAllPlayers()">Randomize all ratings</button>
+
+    <div class="tabpanel" id="tab-season">
+      <div class="card" id="season-status-card"></div>
+      <div class="card hidden" id="offseason-card"></div>
+    </div>
+
+    <div class="tabpanel" id="tab-standings">
+      <div class="card">
+        <h2>Standings</h2>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Rk</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead>
+            <tbody id="standings-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="paste-status" id="league-paste-status"></div>
-    </div>
-    <div class="setup-grid" id="teams-setup-grid"></div>
-    <div class="btn-row" style="margin-top:18px;">
-      <button class="btn" id="start-season-btn" onclick="startSeason(); render();">Start Season 1</button>
-    </div>
-  </div>
-
-  <div class="card hidden" id="league-card">
-    <div class="league-header">
-      <div class="season-lbl">Season <span id="season-num"></span></div>
-      <div class="progress" id="fixtures-progress"></div>
-    </div>
-    <div class="btn-row">
-      <button class="btn small" onclick="simMatchday()" id="btn-matchday">Sim next matchday</button>
-      <button class="btn secondary small" onclick="simFullSeasonBtn()" id="btn-full-season">Sim rest of season</button>
-      <span style="flex:1"></span>
-      <input type="number" class="num-input" id="run-seasons-count" min="1" max="50" value="5">
-      <button class="btn secondary small" onclick="runSeasons(document.getElementById('run-seasons-count').value)">Run N more seasons</button>
     </div>
 
-    <div class="table-scroll">
-      <table class="data-table">
-        <thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead>
-        <tbody id="standings-body"></tbody>
-      </table>
-    </div>
-
-    <div class="two-col">
-      <div>
-        <h2 style="font-size:16px;margin-bottom:8px;">Top scorers</h2>
-        <div class="leaderboard" id="top-scorers"></div>
-      </div>
-      <div>
-        <h2 style="font-size:16px;margin-bottom:8px;">Top assists</h2>
-        <div class="leaderboard" id="top-assists"></div>
+    <div class="tabpanel" id="tab-schedule">
+      <div class="card">
+        <h2>Schedule</h2>
+        <div id="schedule-list"></div>
       </div>
     </div>
 
-    <h2 style="font-size:16px;margin:16px 0 6px;">Latest results</h2>
-    <div class="log" id="latest-results"></div>
-  </div>
-
-  <div class="card hidden" id="offseason-card">
-    <h2>Season complete</h2>
-    <div class="champion-banner" id="offseason-summary"></div>
-    <div style="font-size:13px;color:var(--chalk-dim);line-height:1.6;margin:10px 0 16px;">
-      <b style="color:var(--chalk);">Offseason player movement</b> isn't implemented yet — rosters
-      carry over unchanged into the next season. This is a placeholder for trades, drafts, or
-      free agency, to be defined later.
+    <div class="tabpanel" id="tab-playoffs">
+      <div class="card" id="playoffs-card"></div>
     </div>
-    <button class="btn" onclick="startSeason(); render();">Start Season <span id="next-season-num"></span></button>
-  </div>
 
-  <div class="card" id="career-card">
-    <h2>Career stats</h2>
-    <div class="table-scroll">
-      <table class="data-table">
-        <thead><tr><th>Player</th><th>Team</th><th>Gms</th><th>Goals</th><th>Assists</th><th>GK Gms</th><th>Clean Sheets</th><th>Conceded</th></tr></thead>
-        <tbody id="career-body"></tbody>
-      </table>
+    <div class="tabpanel" id="tab-teams">
+      <div class="card">
+        <h2>Teams</h2>
+        <div class="team-grid" id="team-grid"></div>
+      </div>
     </div>
-    <h2 style="font-size:16px;margin:18px 0 6px;">Season history</h2>
-    <div class="log" id="history-list"></div>
+
+    <div class="tabpanel" id="tab-stats">
+      <div class="card">
+        <h2>Stats</h2>
+        <div class="btn-row" style="margin-bottom:10px;">
+          <button class="tabbtn active" id="stats-scope-season" onclick="setStatsScope('season')">This season</button>
+          <button class="tabbtn" id="stats-scope-career" onclick="setStatsScope('career')">Career</button>
+        </div>
+        <div class="three-col">
+          <div><h2 style="font-size:14px;">Goals</h2><div class="leaderboard" id="stats-goals"></div></div>
+          <div><h2 style="font-size:14px;">Assists</h2><div class="leaderboard" id="stats-assists"></div></div>
+          <div><h2 style="font-size:14px;">Saves</h2><div class="leaderboard" id="stats-saves"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabpanel" id="tab-draft">
+      <div class="card">
+        <h2>Draft report</h2>
+        <div id="draft-report"></div>
+      </div>
+    </div>
+
+    <div class="tabpanel" id="tab-history">
+      <div class="card">
+        <h2>Season history</h2>
+        <div class="log" id="history-list"></div>
+      </div>
+      <div class="card">
+        <h2>Last offseason report</h2>
+        <div id="offseason-report-detail"></div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-// ---- Constants shared with the match simulator's engine ----
+// ---- 96-player pool: [grade, name, off, def] ----
+const PLAYER_ROWS = [
+[5,"Abby",0,0],[9,"Addy",5,4],[9,"Alia",2,2],[13,"Ally",3,5],[18,"Amy",2,3],
+[13,"Andreea",5,6],[9,"Andrew",6,7],[9,"Andy",3,4],[12,"Becca",3,4],[15,"Bella",4,3],
+[8,"Ben F",4,4],[5,"Benji",1,2],[10,"Betty",4,3],[19,"Brandon",8,6],[9,"Briseda",5,5],
+[9,"Brody",5,5],[11,"Caleb",7,7],[12,"Carrie",2,5],[11,"Chase",3,4],[7,"Chloe",1,1],
+[5,"Clyde",1,1],[11,"Colin",4,4],[13,"Danica",5,6],[11,"Daniel",8,9],[10,"Dominic",6,5],
+[15,"Drew",9,10],[17,"Edward",10,9],[16,"Elijah",9,9],[9,"Ella",3,4],[10,"Ellie",2,2],
+[10,"Elsie",0,2],[11,"Emmy",5,5],[11,"Esme",4,4],[13,"Ethan",7,9],[9,"Evelyn",4,4],
+[7,"Ezekiel",0,1],[13,"Ezra",5,6],[9,"Finn",7,8],[14,"Greyson",9,7],[12,"Haddie",3,4],
+[11,"Haddon",6,5],[9,"Hailey",2,3],[8,"Henry",5,5],[8,"Hudson",8,8],[9,"Isaiah",7,6],
+[12,"Ivana",4,5],[16,"Jake",7,10],[8,"Janelle",2,2],[11,"Jeremiah",6,8],[7,"Jesse",3,1],
+[13,"Jimmy",7,7],[12,"Joey A",7,8],[18,"Joey R",5,7],[6,"John E",3,2],[11,"Johnny",7,6],
+[10,"Jonny",10,7],[6,"Jose",5,3],[10,"Josh",6,5],[6,"Jovi",1,0],[14,"Judah",8,8],
+[7,"Jude",4,3],[15,"Kalena",8,8],[11,"Katie",6,6],[12,"Lailie",5,4],[10,"Landon",5,5],
+[18,"Lauren",4,5],[12,"Levi",8,6],[11,"Liam",6,6],[13,"Linnea",2,3],[7,"Lottie",1,1],
+[13,"Luke L",8,7],[16,"Luke W",8,8],[6,"Maggie",5,3],[9,"Maia",4,3],[11,"Mason",9,7],
+[9,"Micah",4,3],[7,"Moses",6,5],[6,"Myles",4,4],[6,"Naomi",3,0],[17,"Nate",4,6],
+[8,"Noah F",7,5],[10,"Noah S",6,5],[13,"Nolan",6,7],[8,"Ollie",7,6],[13,"Peter",6,6],
+[9,"Phoebe",3,3],[10,"Roddy",9,7],[11,"Ryle",10,9],[13,"Sara",6,7],[7,"Sawyer",5,4],
+[6,"Seth",2,2],[6,"Teddy",3,2],[9,"Titus",5,6],[13,"Toby",6,10],[20,"Tyler",7,8],
+[11,"Zane",5,5]
+];
+
 const TEAM_COLORS = [
   {name:'Rocky Rangers',       hex:'#e6e6e6'},
   {name:'Northern Nationals',  hex:'#ffcfc9'},
@@ -204,6 +261,27 @@ const TEAM_COLORS = [
   {name:'Prairie Panthers',    hex:'#215a6c'},
   {name:'Valley Vikings',      hex:'#5a3286'}
 ];
+
+// ---- Fixed 15-slate schedule template, in team-SLOT numbers 1-16 (re-randomized to real teams every season) ----
+const SCHEDULE_TEMPLATE = [
+  [[1,16],[2,15],[3,14],[4,13],[5,12],[6,11],[7,10],[8,9]],
+  [[5,1],[4,6],[3,7],[2,8],[16,9],[15,10],[14,11],[13,12]],
+  [[1,9],[10,8],[11,7],[12,6],[13,5],[14,4],[15,3],[16,2]],
+  [[13,1],[12,14],[11,15],[10,16],[9,2],[8,3],[7,4],[6,5]],
+  [[1,2],[3,16],[4,15],[5,14],[6,13],[7,12],[8,11],[9,10]],
+  [[6,1],[5,7],[4,8],[3,9],[2,10],[16,11],[15,12],[14,13]],
+  [[1,10],[11,9],[12,8],[13,7],[14,6],[15,5],[16,4],[2,3]],
+  [[14,1],[13,15],[12,16],[11,2],[10,3],[9,4],[8,5],[7,6]],
+  [[1,3],[4,2],[5,16],[6,15],[7,14],[8,13],[9,12],[10,11]],
+  [[7,1],[6,8],[5,9],[4,10],[3,11],[2,12],[16,13],[15,14]],
+  [[1,11],[12,10],[13,9],[14,8],[15,7],[16,6],[2,5],[3,4]],
+  [[15,1],[14,16],[13,2],[12,3],[11,4],[10,5],[9,6],[8,7]],
+  [[1,4],[5,3],[6,2],[7,16],[8,15],[9,14],[10,13],[11,12]],
+  [[8,1],[7,9],[6,10],[5,11],[4,12],[3,13],[2,14],[16,15]],
+  [[1,12],[13,11],[14,10],[15,9],[16,8],[2,7],[3,6],[4,5]]
+];
+
+// ---- Formation / position constants (mirrors index.html) ----
 const formationCounts = {
   '2-2-1':{defender:2, midfielder:2, forward:1},
   '2-1-2':{defender:2, midfielder:1, forward:2},
@@ -213,6 +291,192 @@ const formationCounts = {
 const positionAbbr = {defender:'D', midfielder:'M', forward:'F'};
 const attackWeight = {forward:3, midfielder:2, defender:1};
 const defenseWeight = {defender:3, midfielder:2, forward:1};
+
+function d6(){return 1+Math.floor(Math.random()*6);}
+function rollDice(){return 1+Math.floor(Math.random()*20);}
+function boost(rating){ return Math.floor(rating*1.5); }
+function clampRating(v){v=parseInt(v);if(isNaN(v))v=0;return Math.max(0,Math.min(10,v));}
+function shuffleArray(arr){
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+function randNormal(mean, sd){
+  let u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  const z = Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  return mean + z*sd;
+}
+function rollSeasonRating(base, grade){
+  const sd = 5/grade;
+  return Math.max(0, Math.min(10, Math.round(randNormal(base, sd))));
+}
+function weightedPick(players, weightTable){
+  const pool = players.filter(p=>!p.isGK).map(p=>({p, w:weightTable[p.position]||0})).filter(x=>x.w>0);
+  const total = pool.reduce((s,x)=>s+x.w,0);
+  let r = Math.random()*total;
+  for(const x of pool){ if(r<x.w) return x.p; r-=x.w; }
+  return pool[pool.length-1].p;
+}
+function keeperOf(team){return team.players.find(p=>p.isGK);}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatClock(ticks){
+  const totalSeconds = Math.round(ticks*15);
+  const m = Math.floor(totalSeconds/60), s = totalSeconds%60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+// ---- Formation optimizer (ported headlessly from index.html) ----
+function combinations(items, k){
+  const results=[];
+  function helper(start, combo){
+    if(combo.length===k){ results.push(combo.slice()); return; }
+    for(let i=start;i<items.length;i++){ combo.push(items[i]); helper(i+1, combo); combo.pop(); }
+  }
+  helper(0, []);
+  return results;
+}
+const _contestProbsCache = new Map();
+function contestProbs(off, def){
+  const key = off+','+def;
+  if(_contestProbsCache.has(key)) return _contestProbsCache.get(key);
+  let winA=0, tie=0, winD=0;
+  for(let a=1;a<=20;a++){
+    const aTotal=a+off;
+    for(let d=1;d<=20;d++){
+      const dTotal=d+def;
+      if(aTotal>dTotal) winA++; else if(dTotal>aTotal) winD++; else tie++;
+    }
+  }
+  const result = {winA:winA/400, tie:tie/400, winD:winD/400};
+  _contestProbsCache.set(key, result);
+  return result;
+}
+function mixContest(attackers, defenders){
+  const totalA = attackers.reduce((s,x)=>s+x.weight,0);
+  const totalD = defenders.reduce((s,x)=>s+x.weight,0);
+  let winA=0, tie=0, winD=0;
+  for(const a of attackers){
+    const pa=a.weight/totalA;
+    for(const d of defenders){
+      const pd=d.weight/totalD;
+      const c=contestProbs(a.off, d.def);
+      winA+=pa*pd*c.winA; tie+=pa*pd*c.tie; winD+=pa*pd*c.winD;
+    }
+  }
+  return {winA,tie,winD};
+}
+function generalContestProbs(teamObj, oppObj){
+  const attackers = teamObj.players.filter(p=>!p.isGK).map(p=>({off:p.off, weight:attackWeight[p.position]}));
+  const defenders = oppObj.players.filter(p=>!p.isGK).map(p=>({def:p.def, weight:defenseWeight[p.position]}));
+  return mixContest(attackers, defenders);
+}
+function centerContestProbs(teamObj, oppObj){
+  const attackers = teamObj.players.filter(p=>!p.isGK).map(p=>({
+    off: p.position==='midfielder' ? boost(p.off) : p.off, weight:attackWeight[p.position]
+  }));
+  const defenders = oppObj.players.filter(p=>!p.isGK).map(p=>({
+    def: p.position==='midfielder' ? boost(p.def) : p.def, weight:defenseWeight[p.position]
+  }));
+  return mixContest(attackers, defenders);
+}
+function shotContestProbs(teamObj, oppObj){
+  const attackers = teamObj.players.filter(p=>!p.isGK).map(p=>({off:p.off, weight:attackWeight[p.position]}));
+  const gk = keeperOf(oppObj);
+  return mixContest(attackers, [{def:boost(gk.def), weight:1}]);
+}
+function poissonPMFArray(lambda, cap){
+  const arr = new Float64Array(cap+1);
+  arr[0] = Math.exp(-lambda);
+  for(let k=1; k<=cap; k++){ arr[k] = arr[k-1] * lambda / k; }
+  return arr;
+}
+function computeMatchProbabilities(expHome, expAway){
+  const maxExp = Math.max(expHome, expAway, 1);
+  const CAP = Math.max(15, Math.ceil(maxExp + 6*Math.sqrt(maxExp) + 5));
+  const pmfHome = poissonPMFArray(expHome, CAP);
+  const pmfAway = poissonPMFArray(expAway, CAP);
+  let pHomeWin=0, pDraw=0, pAwayWin=0;
+  for(let h=0; h<=CAP; h++){
+    const ph=pmfHome[h];
+    for(let a=0; a<=CAP; a++){
+      const p=ph*pmfAway[a];
+      if(h>a) pHomeWin+=p; else if(h===a) pDraw+=p; else pAwayWin+=p;
+    }
+  }
+  const total = pHomeWin+pDraw+pAwayWin;
+  if(total>0){ pHomeWin/=total; pDraw/=total; pAwayWin/=total; }
+  return {pHomeWin, pDraw, pAwayWin};
+}
+const STATE_LIST = [
+  {poss:'home',zone:0,inBox:false}, {poss:'home',zone:1,inBox:false}, {poss:'home',zone:2,inBox:false},
+  {poss:'home',zone:3,inBox:false}, {poss:'home',zone:4,inBox:false}, {poss:'home',zone:4,inBox:true},
+  {poss:'away',zone:4,inBox:false}, {poss:'away',zone:3,inBox:false}, {poss:'away',zone:2,inBox:false},
+  {poss:'away',zone:1,inBox:false}, {poss:'away',zone:0,inBox:false}, {poss:'away',zone:0,inBox:true}
+];
+function stateIdx(poss, zone, inBox){
+  if(poss==='home'){ return zone<4 ? zone : (inBox?5:4); }
+  return zone>0 ? 6+(4-zone) : (inBox?11:10);
+}
+const STATE_STRUCT = STATE_LIST.map(({poss,zone,inBox})=>{
+  const opp = poss==='home' ? 'away' : 'home';
+  const dir = poss==='home' ? 1 : -1;
+  const isAttackZone = (zone === (poss==='home'?4:0));
+  const isShotStep = isAttackZone && inBox;
+  let toWin, toTie, toLose, goalOnWin=null, probsKey;
+  if(isShotStep){
+    toWin = stateIdx(opp,2,false); goalOnWin = poss;
+    toTie = stateIdx(poss,zone,true);
+    toLose = stateIdx(opp, zone-dir, false);
+    probsKey='shot';
+  } else if(isAttackZone){
+    toWin = stateIdx(poss,zone,true);
+    toTie = stateIdx(poss,zone,false);
+    toLose = stateIdx(opp,zone,false);
+    probsKey='general';
+  } else {
+    toWin = stateIdx(poss, zone+dir, false);
+    toTie = stateIdx(poss,zone,false);
+    toLose = stateIdx(opp,zone,false);
+    probsKey = (zone===2) ? 'center' : 'general';
+  }
+  return {poss, toWin, toTie, toLose, goalOnWin, probsKey};
+});
+const HALFTIME_MAP = STATE_LIST.map(({poss}) => stateIdx(poss==='home'?'away':'home', 2, false));
+function computeExpectedGoals(teamA, teamB){
+  const probsByKey = {
+    general: { home: generalContestProbs(teamA,teamB), away: generalContestProbs(teamB,teamA) },
+    center:  { home: centerContestProbs(teamA,teamB),  away: centerContestProbs(teamB,teamA) },
+    shot:    { home: shotContestProbs(teamA,teamB),    away: shotContestProbs(teamB,teamA) }
+  };
+  let dist = new Float64Array(12);
+  dist[stateIdx('home',2,false)] = 0.5;
+  dist[stateIdx('away',2,false)] = 0.5;
+  let expA=0, expB=0;
+  for(let t=1; t<=160; t++){
+    if(t===81){
+      const flipped = new Float64Array(12);
+      for(let i=0;i<12;i++){ if(dist[i]) flipped[HALFTIME_MAP[i]] += dist[i]; }
+      dist = flipped;
+    }
+    const next = new Float64Array(12);
+    for(let i=0;i<12;i++){
+      const mass = dist[i];
+      if(!mass) continue;
+      const st = STATE_STRUCT[i];
+      const p = probsByKey[st.probsKey][st.poss];
+      next[st.toWin] += mass*p.winA;
+      next[st.toTie] += mass*p.tie;
+      next[st.toLose] += mass*p.winD;
+      if(st.goalOnWin==='home') expA += mass*p.winA;
+      if(st.goalOnWin==='away') expB += mass*p.winA;
+    }
+    dist = next;
+  }
+  return {expA, expB};
+}
 
 function positionForSlot(formationKey, slotIndex){
   const counts = formationCounts[formationKey];
@@ -224,155 +488,236 @@ function positionForSlot(formationKey, slotIndex){
   }
   return 'forward';
 }
-function countSlotNumber(formationKey, slotIndex, pos){
-  let n=0;
-  for(let s=0;s<=slotIndex;s++){ if(positionForSlot(formationKey,s)===pos) n++; }
-  return n;
-}
-function formationSummary(fKey){
-  const c=formationCounts[fKey];
-  return `D${c.defender} · M${c.midfielder} · F${c.forward}`;
-}
-function d6(){return 1+Math.floor(Math.random()*6);}
-function rollDice(){return 1+Math.floor(Math.random()*20);}
-function boost(rating){ return Math.floor(rating*1.5); }
-function clampRating(v){v=parseInt(v);if(isNaN(v))v=0;return Math.max(0,Math.min(10,v));}
-function weightedPick(players, weightTable){
-  const pool = players.filter(p=>!p.isGK).map(p=>({p, w:weightTable[p.position]||0})).filter(x=>x.w>0);
-  const total = pool.reduce((s,x)=>s+x.w,0);
-  let r = Math.random()*total;
-  for(const x of pool){ if(r<x.w) return x.p; r-=x.w; }
-  return pool[pool.length-1].p;
-}
-function keeperOf(team){return team.players.find(p=>p.isGK);}
 
-function stripQuotes(s){
-  return s.trim().replace(/^[\"'“”‘’]+/, '').replace(/[\"'“”‘’]+$/, '').trim();
-}
-function parseLeaguePaste(text){
-  const lines = text.split('\n').map(l=>stripQuotes(l)).filter(l=>l.length>0);
-  const players=[];
-  for(const line of lines){
-    let parts = line.split('\t').map(p=>stripQuotes(p)).filter(p=>p.length>0);
-    if(parts.length<3){
-      const tokens = line.trim().split(/\s+/).map(t=>stripQuotes(t));
-      if(tokens.length>=3){
-        const off = tokens[tokens.length-2];
-        const def = tokens[tokens.length-1];
-        const name = tokens.slice(0, tokens.length-2).join(' ');
-        parts = [stripQuotes(name), off, def];
+// myPlayers: array of 6 plain {id,name,off,def}. opponentTeamObj: {players:[...with position/isGK set]}.
+function optimizeFormation(myPlayers, opponentTeamObj){
+  let best=null;
+  for(let gkIdx=0; gkIdx<6; gkIdx++){
+    const gk = myPlayers[gkIdx];
+    const outfield = myPlayers.filter((_,i)=>i!==gkIdx);
+    const idxs=[0,1,2,3,4];
+    for(const formationKey of Object.keys(formationCounts)){
+      const counts = formationCounts[formationKey];
+      const dCombos = combinations(idxs, counts.defender);
+      for(const dCombo of dCombos){
+        const restAfterD = idxs.filter(i=>!dCombo.includes(i));
+        const mCombos = combinations(restAfterD, counts.midfielder);
+        for(const mCombo of mCombos){
+          const fCombo = restAfterD.filter(i=>!mCombo.includes(i));
+          const dGroup=dCombo.map(i=>outfield[i]);
+          const mGroup=mCombo.map(i=>outfield[i]);
+          const fGroup=fCombo.map(i=>outfield[i]);
+          const candidateTeam = { players: [
+            {...gk, position:'goalkeeper', isGK:true},
+            ...dGroup.map(p=>({...p, position:'defender', isGK:false})),
+            ...mGroup.map(p=>({...p, position:'midfielder', isGK:false})),
+            ...fGroup.map(p=>({...p, position:'forward', isGK:false}))
+          ]};
+          const {expA, expB} = computeExpectedGoals(candidateTeam, opponentTeamObj);
+          const {pHomeWin, pDraw} = computeMatchProbabilities(expA, expB);
+          const score = pHomeWin + 0.5*pDraw;
+          if(!best || score>best.score){
+            best = {score, winProb:pHomeWin, drawProb:pDraw, expFor:expA, expAgainst:expB, team:candidateTeam, formation:formationKey};
+          }
+        }
       }
     }
-    if(parts.length>=3 && !isNaN(parseFloat(parts[1])) && !isNaN(parseFloat(parts[2]))){
-      players.push({name:parts[0], off:clampRating(parts[1]), def:clampRating(parts[2])});
-    }
   }
-  return players;
+  return best;
 }
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function seedTeam(players){
+  return { players: players.map((p,i)=>({...p, position: i===0?'goalkeeper':'defender', isGK:i===0})) };
+}
+// Alternating best-response between the two specific teams in THIS matchup. Capped at 3 rounds
+// (vs. 6 in the single-match tool) since this now runs before every one of ~140 games a season.
+function mutualOptimize(playersA, playersB, maxRounds=3){
+  let curA = seedTeam(playersA), curB = seedTeam(playersB);
+  let bestA=null, bestB=null;
+  for(let r=0;r<maxRounds;r++){
+    bestA = optimizeFormation(playersA, curB); curA = bestA.team;
+    bestB = optimizeFormation(playersB, curA); curB = bestB.team;
+  }
+  return { teamA: curA, teamB: curB, formationA: bestA.formation, formationB: bestB.formation };
 }
 
-// ---- Headless match engine (mirrors index.html's stepMinute, minus DOM/UI) ----
-function buildMatchTeam(team, playersMap){
+// ---- Tick-based match engine: shared by instant sim and the live watch view ----
+const REGULATION_END = 160;
+const ET_PERIOD_TICKS = 28;
+const ET_HALFTIME_TICK = REGULATION_END + ET_PERIOD_TICKS;
+const ET_END = REGULATION_END + ET_PERIOD_TICKS*2;
+
+function createMatchState(homeMatch, awayMatch, decisive){
   return {
-    id: team.id,
-    players: team.playerIds.map((pid,i)=>{
-      const p = playersMap[pid];
-      const isGK = i===0;
-      return { id:pid, name:p.name, off:p.off, def:p.def, isGK, position: isGK?'goalkeeper':positionForSlot(team.formation,i-1) };
-    })
+    homeMatch, awayMatch, decisive,
+    minute:0, zone:2, inBox:false, possession: Math.random()<0.5?'home':'away',
+    score:{home:0,away:0}, assistCandidate:null,
+    goals:[], saves:[],
+    halftimeDone:false, etHalftimeDone:false,
+    stage:'regulation', wentToET:false, wentToPens:false,
+    penalties:null, over:false, lastText:''
   };
 }
-function simulateMatch(homeTeam, awayTeam){
-  let zone=2, inBox=false, possession = Math.random()<0.5?'home':'away';
-  const score={home:0,away:0};
-  let assistCandidate=null, halftimeDone=false;
-  const goals=[];
-  const teams={home:homeTeam, away:awayTeam};
-  for(let minute=1; minute<=160; minute++){
-    if(minute===81 && !halftimeDone){
-      halftimeDone=true; zone=2; inBox=false; assistCandidate=null;
-      possession = possession==='home'?'away':'home';
-    }
-    const team=possession, opp = team==='home'?'away':'home';
-    const dir = team==='home'?1:-1;
-    const teamObj=teams[team], oppObj=teams[opp];
-    const targetZone = team==='home'?4:0;
-    const isAttackZone = (zone===targetZone);
-    const isShotStep = isAttackZone && inBox;
-    let attacker, defender, aTotal, dTotal;
+function matchTick(st){
+  if(st.over) return;
+  if(st.stage==='penalties'){ takePenaltyKick(st); return; }
+  st.minute++;
+
+  if(st.minute===81 && !st.halftimeDone){
+    st.halftimeDone=true; st.zone=2; st.inBox=false; st.assistCandidate=null;
+    st.possession = st.possession==='home'?'away':'home';
+  }
+  if(st.stage==='extratime' && st.minute===ET_HALFTIME_TICK && !st.etHalftimeDone){
+    st.etHalftimeDone=true; st.zone=2; st.inBox=false; st.assistCandidate=null;
+    st.possession = st.possession==='home'?'away':'home';
+  }
+
+  const team=st.possession, opp = team==='home'?'away':'home';
+  const dir = team==='home'?1:-1;
+  const teamObj = team==='home'?st.homeMatch:st.awayMatch;
+  const oppObj = opp==='home'?st.homeMatch:st.awayMatch;
+  const targetZone = team==='home'?4:0;
+  const isAttackZone = (st.zone===targetZone);
+  const isShotStep = isAttackZone && st.inBox;
+
+  let attacker, defender, aTotal, dTotal;
+  if(isShotStep){
+    attacker = weightedPick(teamObj.players, attackWeight);
+    defender = keeperOf(oppObj);
+    aTotal = rollDice()+attacker.off;
+    dTotal = rollDice()+boost(defender.def);
+  } else {
+    attacker = weightedPick(teamObj.players, attackWeight);
+    defender = weightedPick(oppObj.players, defenseWeight);
+    const inCenter = (st.zone===2);
+    const attBoosted = inCenter && attacker.position==='midfielder';
+    const defBoosted = inCenter && defender.position==='midfielder';
+    aTotal = rollDice() + (attBoosted ? boost(attacker.off) : attacker.off);
+    dTotal = rollDice() + (defBoosted ? boost(defender.def) : defender.def);
+  }
+
+  let text='';
+  if(aTotal>dTotal){
     if(isShotStep){
-      attacker = weightedPick(teamObj.players, attackWeight);
-      defender = keeperOf(oppObj);
-      aTotal = rollDice()+attacker.off;
-      dTotal = rollDice()+boost(defender.def);
+      st.score[team]++;
+      const assist = (st.assistCandidate && st.assistCandidate.playerId!==attacker.id) ? st.assistCandidate : null;
+      st.goals.push({minute:st.minute, teamKey:team, scorerId:attacker.id, assistId: assist?assist.playerId:null});
+      st.zone=2; st.inBox=false; st.possession=opp; st.assistCandidate=null;
+      text = `GOAL! ${attacker.name} (${teamObj.name}) — ${st.score.home}-${st.score.away}`;
+    } else if(isAttackZone){
+      st.inBox=true; st.assistCandidate={playerId:attacker.id};
+      text = `${attacker.name} beats ${defender.name} and gets into the box, one-on-one with the keeper.`;
     } else {
-      attacker = weightedPick(teamObj.players, attackWeight);
-      defender = weightedPick(oppObj.players, defenseWeight);
-      const inCenter = (zone===2);
-      const attBoosted = inCenter && attacker.position==='midfielder';
-      const defBoosted = inCenter && defender.position==='midfielder';
-      aTotal = rollDice() + (attBoosted ? boost(attacker.off) : attacker.off);
-      dTotal = rollDice() + (defBoosted ? boost(defender.def) : defender.def);
+      st.zone += dir;
+      text = `${attacker.name} beats ${defender.name} — ${teamObj.name} push forward.`;
     }
-    if(aTotal>dTotal){
-      if(isShotStep){
-        score[team]++;
-        const assist = (assistCandidate && assistCandidate.playerId!==attacker.id) ? assistCandidate : null;
-        goals.push({minute, teamKey:team, scorerId:attacker.id, assistId: assist?assist.playerId:null});
-        zone=2; inBox=false; possession=opp; assistCandidate=null;
-      } else if(isAttackZone){
-        inBox=true; assistCandidate={playerId:attacker.id};
-      } else {
-        zone += dir;
-      }
-    } else if(dTotal>aTotal){
-      if(isShotStep){
-        zone = zone-dir; inBox=false; possession=opp; assistCandidate=null;
-      } else if(isAttackZone){
-        possession=opp;
-      } else {
-        possession=opp;
-      }
+  } else if(dTotal>aTotal){
+    if(isShotStep){
+      st.saves.push({minute:st.minute, teamKey:opp, gkId:defender.id});
+      st.zone = st.zone-dir; st.inBox=false; st.possession=opp; st.assistCandidate=null;
+      text = `${defender.name} saves it! ${oppObj.name} clear their lines.`;
+    } else if(isAttackZone){
+      st.possession=opp;
+      text = `${defender.name} shuts down ${attacker.name} — ${oppObj.name} win it back, deep in their own third.`;
+    } else {
+      st.possession=opp;
+      text = `${defender.name} wins the ball off ${attacker.name} — turnover to ${oppObj.name}.`;
     }
-    // tie: nothing changes, same team tries again next tick
+  } else {
+    text = isShotStep ? `Blocked on the line! Still scrambling.` : `50-50 ball, contested — play continues.`;
   }
-  return {homeGoals:score.home, awayGoals:score.away, goals};
+  st.lastText = text;
+  checkPhaseEnd(st);
+}
+function checkPhaseEnd(st){
+  if(st.stage==='regulation' && st.minute>=REGULATION_END){
+    if(st.score.home===st.score.away && st.decisive){
+      st.stage='extratime'; st.wentToET=true; st.etHalftimeDone=false;
+      st.zone=2; st.inBox=false; st.assistCandidate=null;
+      st.possession = Math.random()<0.5?'home':'away';
+    } else {
+      st.over=true;
+    }
+  } else if(st.stage==='extratime' && st.minute>=ET_END){
+    if(st.score.home===st.score.away){
+      beginPenalties(st);
+    } else {
+      st.over=true;
+    }
+  }
+}
+function beginPenalties(st){
+  st.stage='penalties'; st.wentToPens=true;
+  const homeOrder=[...st.homeMatch.players].sort((a,b)=>b.off-a.off);
+  const awayOrder=[...st.awayMatch.players].sort((a,b)=>b.off-a.off);
+  st.penalties = {
+    order:{home:homeOrder, away:awayOrder}, idx:{home:0,away:0}, taken:{home:0,away:0},
+    score:{home:0,away:0}, kickingTeam: Math.random()<0.5?'home':'away', finished:false, winner:null
+  };
+  st.lastText = 'Extra time ends level. Penalties!';
+}
+function takePenaltyKick(st){
+  const p = st.penalties;
+  if(!p || p.finished) return;
+  const team = p.kickingTeam, opp = team==='home'?'away':'home';
+  const oppObj = opp==='home'?st.homeMatch:st.awayMatch;
+  const kicker = p.order[team][p.idx[team]%6];
+  const keeper = keeperOf(oppObj);
+  const aTotal = rollDice()+boost(kicker.off);
+  const dTotal = rollDice()+keeper.def;
+  const scored = aTotal>dTotal;
+  p.taken[team]++; p.idx[team]++;
+  if(scored) p.score[team]++;
+  st.lastText = scored ? `${kicker.name} scores! (${p.score.home}-${p.score.away})` : `${keeper.name} saves it! ${kicker.name}'s penalty is stopped.`;
+  checkPenaltyOutcome(p);
+  if(!p.finished) p.kickingTeam = opp;
+  if(p.finished){ st.over = true; }
+}
+function checkPenaltyOutcome(p){
+  const {home,away}=p.score, hT=p.taken.home, aT=p.taken.away, BASE=5;
+  if(hT<BASE || aT<BASE){
+    const hRemain=BASE-hT, aRemain=BASE-aT;
+    if(home>away+aRemain){ p.finished=true; p.winner='home'; return; }
+    if(away>home+hRemain){ p.finished=true; p.winner='away'; return; }
+    return;
+  }
+  if(hT===aT && home!==away){ p.finished=true; p.winner = home>away?'home':'away'; }
+}
+function finalizeMatchResult(st){
+  let winnerKey=null;
+  if(st.wentToPens){ winnerKey = st.penalties.winner; }
+  else if(st.score.home!==st.score.away){ winnerKey = st.score.home>st.score.away?'home':'away'; }
+  return {
+    homeGoals: st.score.home, awayGoals: st.score.away,
+    goals: st.goals, saves: st.saves,
+    wentToET: st.wentToET, wentToPens: st.wentToPens,
+    pensScore: st.penalties ? {...st.penalties.score} : null,
+    winnerKey,
+    homeGkId: keeperOf(st.homeMatch).id, awayGkId: keeperOf(st.awayMatch).id
+  };
+}
+function runMatchToCompletion(homeMatch, awayMatch, decisive){
+  const st = createMatchState(homeMatch, awayMatch, decisive);
+  let guard=0;
+  while(!st.over && guard++<5000){ matchTick(st); }
+  return finalizeMatchResult(st);
 }
 
-// ---- Round-robin schedule (circle method), doubled with reversed home/away for the second leg ----
-function generateSchedule(teamIds){
-  const n = teamIds.length, half = n/2;
-  let arr = teamIds.slice();
-  const roundsFirstLeg = [];
-  for(let r=0;r<n-1;r++){
-    const round=[];
-    for(let i=0;i<half;i++){
-      const a=arr[i], b=arr[n-1-i];
-      round.push((r+i)%2===0 ? {home:a, away:b} : {home:b, away:a});
-    }
-    roundsFirstLeg.push(round);
-    arr = [arr[0], arr[n-1], ...arr.slice(1, n-1)];
-  }
-  const roundsSecondLeg = roundsFirstLeg.map(round=>round.map(m=>({home:m.away, away:m.home})));
-  return [...roundsFirstLeg, ...roundsSecondLeg];
-}
-
-// ---- League data model ----
-const LS_KEY = 'diceSoccerLeagueV1';
+// ---- League data model + persistence ----
+const LS_KEY = 'diceSoccerLeagueV2';
 function buildDefaultLeague(){
   const players = {};
-  const teams = TEAM_COLORS.map((tc,ti)=>{
-    const playerIds=[];
-    for(let s=0;s<6;s++){
-      const id = `t${ti}_p${s}`;
-      playerIds.push(id);
-      players[id] = { id, name:`Player ${ti*6+s+1}`, off: d6()+d6()-2, def: d6()+d6()-2 };
-    }
-    return { id:`t${ti}`, name: tc.name, color: tc.hex, formation:'2-2-1', playerIds };
+  PLAYER_ROWS.forEach((row,i)=>{
+    const [grade,name,off,def] = row;
+    const id = 'p'+i;
+    players[id] = { id, name, grade, baseOff:off, baseDef:def, off, def, time:0, teamId:null };
   });
-  return { players, teams, seasonNum:0, activeSeason:null, history:[], careerStats:{} };
+  const teams = TEAM_COLORS.map((tc,ti)=>({ id:'t'+ti, name:tc.name, color:tc.hex, playerIds:[] }));
+  return {
+    version:2, players, teams,
+    draftDone:false, draftReport:null,
+    seasonNum:0, activeSeason:null,
+    careerStats:{}, history:[], offseasonReport:null
+  };
 }
 function loadLeague(){
   try{
@@ -383,143 +728,87 @@ function loadLeague(){
 }
 let league = loadLeague();
 function saveLeague(){ localStorage.setItem(LS_KEY, JSON.stringify(league)); }
-
 function resetLeague(){
-  if(!confirm('Reset the entire league? This clears all teams, seasons, and stats.')) return;
+  if(!confirm('Reset the entire league? This clears the draft, all seasons, and all stats.')) return;
   localStorage.removeItem(LS_KEY);
   league = buildDefaultLeague();
+  liveWatch = null;
   saveLeague();
   render();
 }
 
-// ---- Setup card ----
-function updatePlayerField(teamId, slot, field, el){
-  const team = league.teams.find(t=>t.id===teamId);
-  const id = team.playerIds[slot];
-  const p = league.players[id];
-  if(field==='name') p.name = el.value || p.name;
-  else p[field] = clampRating(el.value);
-  saveLeague();
-}
-function updateTeamField(teamId, field, el){
-  const team = league.teams.find(t=>t.id===teamId);
-  if(field==='formation'){ team.formation = el.value; retagTeam(teamId); }
-  else if(field==='color'){ team.color = el.value; }
-  else if(field==='name'){ team.name = el.value || team.name; }
-  saveLeague();
-}
-function retagTeam(teamId){
-  const team = league.teams.find(t=>t.id===teamId);
-  for(let i=1;i<6;i++){
-    const pos = positionForSlot(team.formation, i-1);
-    const num = countSlotNumber(team.formation, i-1, pos);
-    const tagEl = document.getElementById(`tag-${teamId}-${i}`);
-    if(tagEl) tagEl.textContent = `${positionAbbr[pos]}${num}`;
+// ---- Draft ----
+function doRunDraft(){
+  if(league.draftDone) return;
+  const order = shuffleArray(league.teams.map(t=>t.id).slice());
+  const ranked = Object.keys(league.players).map(pid=>{
+    const p = league.players[pid];
+    return { pid, value: (p.baseOff+p.baseDef)*(Math.random()+1) };
+  }).sort((a,b)=>b.value-a.value);
+
+  const picks=[];
+  let idx=0, round=0;
+  while(idx<ranked.length){
+    const teamsThisRound = (round%2===0) ? order : order.slice().reverse();
+    for(const teamId of teamsThisRound){
+      if(idx>=ranked.length) break;
+      const {pid,value} = ranked[idx++];
+      const team = league.teams.find(t=>t.id===teamId);
+      team.playerIds.push(pid);
+      league.players[pid].teamId = teamId;
+      picks.push({round:round+1, pick:picks.length+1, teamId, playerId:pid, value});
+    }
+    round++;
   }
-  const sumEl = document.getElementById(`summary-${teamId}`);
-  if(sumEl) sumEl.textContent = formationSummary(team.formation);
-}
-function randomizeAllPlayers(){
-  Object.values(league.players).forEach(p=>{ p.off=d6()+d6()-2; p.def=d6()+d6()-2; });
+  league.draftReport = {order, picks};
+  league.draftDone = true;
+
+  Object.values(league.players).forEach(p=>{
+    p.time = Math.random()*5;
+    p.off = rollSeasonRating(p.baseOff, p.grade);
+    p.def = rollSeasonRating(p.baseDef, p.grade);
+  });
+
   saveLeague();
-  renderSetup();
-}
-function importLeaguePaste(){
-  const text = document.getElementById('league-paste-text').value;
-  const rows = parseLeaguePaste(text);
-  const statusEl = document.getElementById('league-paste-status');
-  if(!rows.length){
-    statusEl.textContent = 'No valid lines found — expected "Name  Off  Def" per line.';
-    return;
-  }
-  const n = Math.min(rows.length, 96);
-  for(let i=0;i<n;i++){
-    const ti=Math.floor(i/6), si=i%6;
-    const id = league.teams[ti].playerIds[si];
-    league.players[id].name = rows[i].name;
-    league.players[id].off = rows[i].off;
-    league.players[id].def = rows[i].def;
-  }
-  saveLeague();
-  renderSetup();
-  statusEl.textContent = `Imported ${n} of ${rows.length} player${rows.length===1?'':'s'} into ${Math.ceil(n/6)} team slot(s), 6 per team in order. First of each 6 is that team's goalkeeper.`;
-}
-function renderSetup(){
-  const grid = document.getElementById('teams-setup-grid');
-  grid.innerHTML = league.teams.map(team=>{
-    const rows = team.playerIds.map((pid,i)=>{
-      const p = league.players[pid];
-      const isGK = i===0;
-      const pos = isGK ? null : positionForSlot(team.formation,i-1);
-      const tag = isGK ? 'GK' : `${positionAbbr[pos]}${countSlotNumber(team.formation,i-1,pos)}`;
-      return `
-        <div class="player-row">
-          <span class="tag" id="tag-${team.id}-${i}">${tag}</span>
-          <input type="text" value="${escapeHtml(p.name)}" onchange="updatePlayerField('${team.id}',${i},'name',this)">
-          <input type="number" min="0" max="10" value="${p.off}" onchange="updatePlayerField('${team.id}',${i},'off',this)">
-          <input type="number" min="0" max="10" value="${p.def}" onchange="updatePlayerField('${team.id}',${i},'def',this)">
-        </div>`;
-    }).join('');
-    return `
-      <div class="team-setup-card">
-        <div class="header">
-          <input type="color" value="${team.color}" onchange="updateTeamField('${team.id}','color',this)" title="Team color">
-          <input type="text" class="team-name-input-sm" value="${escapeHtml(team.name)}" maxlength="24" onchange="updateTeamField('${team.id}','name',this)">
-        </div>
-        <div class="formation-row">
-          <label>Formation</label>
-          <select onchange="updateTeamField('${team.id}','formation',this)">
-            ${Object.keys(formationCounts).map(fk=>`<option value="${fk}" ${fk===team.formation?'selected':''}>${fk}</option>`).join('')}
-          </select>
-          <span class="fbreak" id="summary-${team.id}">${formationSummary(team.formation)}</span>
-        </div>
-        <div class="col-head-sm"><span></span><span>Player</span><span>Off</span><span>Def</span></div>
-        ${rows}
-      </div>`;
-  }).join('');
+  render();
 }
 
-// ---- Season lifecycle ----
-function startSeason(){
-  const teamIds = league.teams.map(t=>t.id);
-  const schedule = generateSchedule(teamIds);
+// ---- Season / schedule lifecycle ----
+function assignSeasonSlots(){
+  const shuffled = shuffleArray(league.teams.map(t=>t.id).slice());
+  const slotAssignment = {};
+  shuffled.forEach((tid,i)=> slotAssignment[i+1]=tid);
+  return slotAssignment;
+}
+function buildFixturesFromSchedule(slotAssignment){
   const fixtures=[];
-  schedule.forEach((round,ri)=>{
-    round.forEach(m=>fixtures.push({round:ri+1, home:m.home, away:m.away, played:false, hg:null, ag:null, goals:null}));
+  SCHEDULE_TEMPLATE.forEach((slate,si)=>{
+    slate.forEach(([hSlot,aSlot])=>{
+      fixtures.push({
+        slate: si+1, home: slotAssignment[hSlot], away: slotAssignment[aSlot],
+        played:false, hg:null, ag:null, goals:null, saves:null,
+        homeGkId:null, awayGkId:null, homeFormation:null, awayFormation:null
+      });
+    });
   });
+  return fixtures;
+}
+function startSeason(){
   league.seasonNum++;
+  const slotAssignment = assignSeasonSlots();
   league.activeSeason = {
     seasonNum: league.seasonNum,
-    teamsSnapshot: JSON.parse(JSON.stringify(league.teams)),
-    fixtures,
-    complete:false
+    slotAssignment,
+    fixtures: buildFixturesFromSchedule(slotAssignment),
+    regularComplete:false,
+    regularStandingsSnapshot:null,
+    playoffs:null
   };
   saveLeague();
 }
-function teamById(snapshot, id){ return snapshot.find(t=>t.id===id); }
-function teamNameForPlayerInSnapshot(snapshot, id){
-  const t = snapshot.find(t=>t.playerIds.includes(id));
-  return t ? t.name : '—';
-}
-function teamNameForPlayerCurrent(id){
-  const t = league.teams.find(t=>t.playerIds.includes(id));
-  return t ? t.name : '—';
-}
-function simulateFixture(fx){
-  const s = league.activeSeason;
-  const homeTeam = teamById(s.teamsSnapshot, fx.home);
-  const awayTeam = teamById(s.teamsSnapshot, fx.away);
-  const homeMatch = buildMatchTeam(homeTeam, league.players);
-  const awayMatch = buildMatchTeam(awayTeam, league.players);
-  const result = simulateMatch(homeMatch, awayMatch);
-  fx.played = true;
-  fx.hg = result.homeGoals;
-  fx.ag = result.awayGoals;
-  fx.goals = result.goals;
-}
-function computeStandings(teamsSnapshot, fixtures){
+function computeStandings(teamsList, fixtures){
   const table={};
-  teamsSnapshot.forEach(t=> table[t.id]={id:t.id,name:t.name,color:t.color,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
+  teamsList.forEach(t=> table[t.id]={id:t.id,name:t.name,color:t.color,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
   fixtures.forEach(fx=>{
     if(!fx.played) return;
     const h=table[fx.home], a=table[fx.away];
@@ -528,180 +817,732 @@ function computeStandings(teamsSnapshot, fixtures){
     else if(fx.ag>fx.hg){ a.w++; a.pts+=3; h.l++; }
     else { h.d++; a.d++; h.pts++; a.pts++; }
   });
-  return Object.values(table).sort((x,y)=> y.pts-x.pts || (y.gf-y.ga)-(x.gf-x.ga) || y.gf-x.gf || x.name.localeCompare(y.name));
+  const arr = Object.values(table);
+  arr.sort((x,y)=> y.pts-x.pts || y.w-x.w || (y.gf-y.ga)-(x.gf-x.ga) || y.gf-x.gf || x.name.localeCompare(y.name));
+  arr.forEach((r,i)=>r.rk=i+1);
+  return arr;
 }
-function computeSeasonPlayerTotals(fixtures){
-  const totals={};
-  function bump(id,key){ if(!id) return; totals[id]=totals[id]||{goals:0,assists:0}; totals[id][key]++; }
-  fixtures.forEach(fx=>{
-    if(!fx.played || !fx.goals) return;
-    fx.goals.forEach(g=>{ bump(g.scorerId,'goals'); if(g.assistId) bump(g.assistId,'assists'); });
+function simulateOneGame(homeTeamId, awayTeamId, decisive){
+  const homeTeam = league.teams.find(t=>t.id===homeTeamId);
+  const awayTeam = league.teams.find(t=>t.id===awayTeamId);
+  const homePlayers = homeTeam.playerIds.map(pid=>({...league.players[pid]}));
+  const awayPlayers = awayTeam.playerIds.map(pid=>({...league.players[pid]}));
+  const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 3);
+  teamA.name = homeTeam.name; teamB.name = awayTeam.name;
+  const result = runMatchToCompletion(teamA, teamB, decisive);
+  result.homeFormation = formationA;
+  result.awayFormation = formationB;
+  return result;
+}
+function applyFixtureResult(fx, result){
+  fx.played=true; fx.hg=result.homeGoals; fx.ag=result.awayGoals;
+  fx.goals=result.goals; fx.saves=result.saves;
+  fx.homeGkId=result.homeGkId; fx.awayGkId=result.awayGkId;
+  fx.homeFormation=result.homeFormation; fx.awayFormation=result.awayFormation;
+}
+function checkRegularSeasonComplete(){
+  const s = league.activeSeason;
+  if(!s || s.regularComplete) return;
+  if(!s.fixtures.every(f=>f.played)) return;
+  s.regularComplete = true;
+  s.regularStandingsSnapshot = computeStandings(league.teams, s.fixtures);
+  s.playoffs = buildPlayoffs(s.regularStandingsSnapshot);
+}
+
+// ---- Playoffs: top 10 seeds, wildcard (Bo1), round1/semis/finals (Bo3). Every game is decisive
+// (ET, then penalties, if tied) — a "best of three" only makes sense if every leg has a winner. ----
+function newSeries(teamA, teamB, bestOf){
+  return {teamA, teamB, bestOf, games:[], wins:{}, winnerTeamId:null};
+}
+function buildPlayoffs(standings){
+  const seeds = standings.slice(0,10).map(r=>r.id); // seeds[0] = 1-seed ... seeds[9] = 10-seed
+  return {
+    seeds,
+    wildcard: {
+      m1: newSeries(seeds[7], seeds[8], 1), // 8 vs 9
+      m2: newSeries(seeds[6], seeds[9], 1)  // 7 vs 10
+    },
+    round1: {
+      a: newSeries(seeds[0], null, 3),      // 1 vs winner(8/9)
+      b: newSeries(seeds[3], seeds[4], 3),  // 4 vs 5
+      c: newSeries(seeds[1], null, 3),      // 2 vs winner(7/10)
+      d: newSeries(seeds[2], seeds[5], 3)   // 3 vs 6
+    },
+    semis: { s1: newSeries(null,null,3), s2: newSeries(null,null,3) },
+    finals: newSeries(null,null,3),
+    champion: null, complete:false
+  };
+}
+function seriesNeedsGame(series){
+  if(!series.teamA || !series.teamB) return false;
+  if(series.winnerTeamId) return false;
+  return true;
+}
+function recordSeriesGame(series, homeId, awayId, gameIndex, result){
+  const winnerId = result.winnerKey==='home' ? homeId : awayId;
+  series.games.push({
+    index:gameIndex, home:homeId, away:awayId, hg:result.homeGoals, ag:result.awayGoals,
+    goals:result.goals, saves:result.saves, homeGkId:result.homeGkId, awayGkId:result.awayGkId,
+    wentToET:result.wentToET, wentToPens:result.wentToPens, pensScore:result.pensScore, winnerTeamId:winnerId
+  });
+  series.wins[winnerId] = (series.wins[winnerId]||0)+1;
+  if(series.wins[winnerId] >= Math.ceil(series.bestOf/2)) series.winnerTeamId = winnerId;
+}
+function playSeriesGame(series, gameIndex){
+  const aHome = (gameIndex%2===0);
+  const homeId = aHome? series.teamA : series.teamB;
+  const awayId = aHome? series.teamB : series.teamA;
+  const result = simulateOneGame(homeId, awayId, true);
+  recordSeriesGame(series, homeId, awayId, gameIndex, result);
+  return result;
+}
+function advanceBracket(){
+  const po = league.activeSeason && league.activeSeason.playoffs;
+  if(!po || po.complete) return;
+  if(po.wildcard.m1.winnerTeamId) po.round1.a.teamB = po.wildcard.m1.winnerTeamId;
+  if(po.wildcard.m2.winnerTeamId) po.round1.c.teamB = po.wildcard.m2.winnerTeamId;
+  if(po.round1.a.winnerTeamId) po.semis.s1.teamA = po.round1.a.winnerTeamId;
+  if(po.round1.b.winnerTeamId) po.semis.s1.teamB = po.round1.b.winnerTeamId;
+  if(po.round1.c.winnerTeamId) po.semis.s2.teamA = po.round1.c.winnerTeamId;
+  if(po.round1.d.winnerTeamId) po.semis.s2.teamB = po.round1.d.winnerTeamId;
+  if(po.semis.s1.winnerTeamId) po.finals.teamA = po.semis.s1.winnerTeamId;
+  if(po.semis.s2.winnerTeamId) po.finals.teamB = po.semis.s2.winnerTeamId;
+  if(po.finals.winnerTeamId && !po.complete){
+    po.champion = po.finals.winnerTeamId;
+    po.complete = true;
+    finalizeSeasonStats();
+  }
+}
+function findNextPlayoffSeries(){
+  const po = league.activeSeason && league.activeSeason.playoffs;
+  if(!po || po.complete) return null;
+  const order = [po.wildcard.m1, po.wildcard.m2, po.round1.a, po.round1.b, po.round1.c, po.round1.d, po.semis.s1, po.semis.s2, po.finals];
+  for(const series of order){ if(seriesNeedsGame(series)) return series; }
+  return null;
+}
+
+// ---- Stats rollup (called once, the instant the playoffs finish) ----
+function collectAllSeasonGames(s){
+  const games = s.fixtures.map(f=>({home:f.home,away:f.away,hg:f.hg,ag:f.ag,goals:f.goals,saves:f.saves,homeGkId:f.homeGkId,awayGkId:f.awayGkId}));
+  if(s.playoffs){
+    const allSeries=[s.playoffs.wildcard.m1,s.playoffs.wildcard.m2,s.playoffs.round1.a,s.playoffs.round1.b,
+      s.playoffs.round1.c,s.playoffs.round1.d,s.playoffs.semis.s1,s.playoffs.semis.s2,s.playoffs.finals];
+    allSeries.forEach(series=>{
+      series.games.forEach(g=> games.push({home:g.home,away:g.away,hg:g.hg,ag:g.ag,goals:g.goals,saves:g.saves,homeGkId:g.homeGkId,awayGkId:g.awayGkId}));
+    });
+  }
+  return games;
+}
+function careerBump(id, field, amount){
+  if(!id || !amount) return;
+  const c = league.careerStats[id] = league.careerStats[id] || {goals:0,assists:0,saves:0,games:0,gkGames:0,cleanSheets:0,conceded:0};
+  c[field]+=amount;
+}
+function computeSeasonTotals(s){
+  const totals = {};
+  function bump(map,id,key){ if(!id) return; map[id]=map[id]||{goals:0,assists:0,saves:0}; map[id][key]++; }
+  collectAllSeasonGames(s).forEach(g=>{
+    (g.goals||[]).forEach(ev=>{ bump(totals, ev.scorerId,'goals'); if(ev.assistId) bump(totals, ev.assistId,'assists'); });
+    (g.saves||[]).forEach(ev=>{ bump(totals, ev.gkId,'saves'); });
   });
   return totals;
 }
-function careerBump(id, field, amount){
-  if(!amount) return;
-  const c = league.careerStats[id] = league.careerStats[id] || {goals:0,assists:0,games:0,gkGames:0,cleanSheets:0,conceded:0};
-  c[field]+=amount;
-}
-function finalizeSeasonIfComplete(){
+function finalizeSeasonStats(){
   const s = league.activeSeason;
-  if(!s || s.complete) return;
-  if(!s.fixtures.every(f=>f.played)) return;
-  s.complete = true;
+  const allGames = collectAllSeasonGames(s);
+  const totals = computeSeasonTotals(s);
 
-  const table = computeStandings(s.teamsSnapshot, s.fixtures);
-  const totals = computeSeasonPlayerTotals(s.fixtures);
-
-  s.teamsSnapshot.forEach(team=>{
-    const teamFixtures = s.fixtures.filter(f=>f.home===team.id || f.away===team.id);
-    const games = teamFixtures.length;
-    team.playerIds.forEach(pid=> careerBump(pid,'games', games));
-    const gkId = team.playerIds[0];
-    let conceded=0, cleanSheets=0;
-    teamFixtures.forEach(f=>{
-      const against = f.home===team.id ? f.ag : f.hg;
-      conceded += against;
-      if(against===0) cleanSheets++;
+  league.teams.forEach(t=>{
+    const teamGames = allGames.filter(g=>g.home===t.id || g.away===t.id);
+    const games = teamGames.length;
+    t.playerIds.forEach(pid=> careerBump(pid,'games', games));
+    teamGames.forEach(g=>{
+      const isHome = g.home===t.id;
+      const gkId = isHome ? g.homeGkId : g.awayGkId;
+      const against = isHome ? g.ag : g.hg;
+      careerBump(gkId,'gkGames',1);
+      careerBump(gkId,'conceded',against);
+      if(against===0) careerBump(gkId,'cleanSheets',1);
     });
-    careerBump(gkId,'gkGames', games);
-    careerBump(gkId,'conceded', conceded);
-    careerBump(gkId,'cleanSheets', cleanSheets);
   });
-  Object.entries(totals).forEach(([id,t])=>{
-    careerBump(id,'goals', t.goals);
-    careerBump(id,'assists', t.assists);
+  Object.entries(totals).forEach(([pid,t])=>{
+    careerBump(pid,'goals',t.goals);
+    careerBump(pid,'assists',t.assists);
+    careerBump(pid,'saves',t.saves);
   });
 
-  const champ = table[0];
-  const topScorerEntry = Object.entries(totals).map(([id,t])=>({id,...t})).sort((a,b)=>b.goals-a.goals)[0];
+  const champTeam = league.teams.find(t=>t.id===s.playoffs.champion);
+  const regChampTeam = league.teams.find(t=>t.id===s.regularStandingsSnapshot[0].id);
+  const topScorerEntry = Object.entries(totals).sort((a,b)=>b[1].goals-a[1].goals)[0];
   league.history.push({
     seasonNum: s.seasonNum,
-    championName: champ.name,
-    topScorer: topScorerEntry ? {name: league.players[topScorerEntry.id].name, goals: topScorerEntry.goals} : null
+    champTeamName: champTeam.name,
+    regularSeasonWinner: regChampTeam.name,
+    topScorer: topScorerEntry ? {name: league.players[topScorerEntry[0]].name, goals: topScorerEntry[1].goals} : null
   });
   saveLeague();
 }
-function simMatchday(){
+
+// ---- Offseason: Time economy + free agency, run once per completed season ----
+function runFreeAgencyAndAdvance(){
   const s = league.activeSeason;
-  if(!s || s.complete) return;
+  const standings = s.regularStandingsSnapshot;
+
+  const teamMinPid = {};
+  league.teams.forEach(t=>{
+    let minPid=null;
+    t.playerIds.forEach(pid=>{
+      if(minPid===null || league.players[pid].time < league.players[minPid].time) minPid=pid;
+    });
+    teamMinPid[t.id]=minPid;
+  });
+  const threshold = Math.max(...league.teams.map(t=>league.players[teamMinPid[t.id]].time));
+
+  const removedFromTeam = {};
+  league.teams.forEach(t=>removedFromTeam[t.id]=[]);
+  const faPoolSet = new Set();
+
+  league.teams.forEach(t=>{
+    const mustGoPid = teamMinPid[t.id];
+    faPoolSet.add(mustGoPid);
+    removedFromTeam[t.id].push(mustGoPid);
+    t.playerIds.forEach(pid=>{
+      if(pid===mustGoPid) return;
+      if(league.players[pid].time<=threshold && Math.random()<0.5){
+        faPoolSet.add(pid);
+        removedFromTeam[t.id].push(pid);
+      }
+    });
+  });
+
+  league.teams.forEach(t=>{
+    const removedSet = new Set(removedFromTeam[t.id]);
+    t.playerIds = t.playerIds.filter(pid=>!removedSet.has(pid));
+  });
+
+  const faRatings={};
+  faPoolSet.forEach(pid=>{
+    const p=league.players[pid];
+    faRatings[pid] = (p.off+p.def)*(Math.random()+1);
+  });
+
+  const reverseOrder = standings.slice().reverse().map(r=>r.id); // worst team first
+  let pool = Array.from(faPoolSet);
+  const faReport=[];
+  let safety=0;
+  while(pool.length>0 && league.teams.some(t=>t.playerIds.length<6) && safety++<3000){
+    for(const teamId of reverseOrder){
+      if(pool.length===0) break;
+      const team = league.teams.find(t=>t.id===teamId);
+      if(team.playerIds.length>=6) continue;
+      pool.sort((a,b)=>faRatings[b]-faRatings[a]);
+      const pid = pool.shift();
+      team.playerIds.push(pid);
+      league.players[pid].teamId = teamId;
+      faReport.push({teamId, playerId:pid, rating:faRatings[pid]});
+    }
+  }
+
+  // Time evolves for EVERY player based on their time value before this offseason.
+  Object.values(league.players).forEach(p=>{
+    if(p.time<=threshold) p.time = Math.random()*5;
+    else p.time -= 1;
+  });
+  // Fresh season-opening variance around each player's fixed base ratings.
+  Object.values(league.players).forEach(p=>{
+    p.off = rollSeasonRating(p.baseOff, p.grade);
+    p.def = rollSeasonRating(p.baseDef, p.grade);
+  });
+
+  league.offseasonReport = { afterSeasonNum: s.seasonNum, threshold, faCount: faPoolSet.size, faReport };
+  saveLeague();
+}
+
+// ---- Async, chunked sim runners (yield to the browser so the tab stays responsive) ----
+function showProgress(text){ document.getElementById('progress-panel').classList.remove('hidden'); document.getElementById('progress-text').textContent=text; }
+function setProgressText(text){ document.getElementById('progress-text').textContent=text; }
+function hideProgress(){ document.getElementById('progress-panel').classList.add('hidden'); }
+function disableSimButtons(disabled){
+  document.querySelectorAll('.sim-btn').forEach(b=> b.disabled = disabled);
+}
+async function simFixtureList(list, label){
+  if(!list.length) return;
+  disableSimButtons(true);
+  showProgress(label);
+  for(let i=0;i<list.length;i++){
+    const fx=list[i];
+    const result = simulateOneGame(fx.home, fx.away, false);
+    applyFixtureResult(fx, result);
+    setProgressText(`${label} — ${i+1}/${list.length}`);
+    await new Promise(r=>setTimeout(r,0));
+  }
+  checkRegularSeasonComplete();
+  saveLeague();
+  hideProgress();
+  disableSimButtons(false);
+  render();
+}
+function simNextGameBtn(){
+  const s=league.activeSeason; if(!s) return;
+  const fx = s.fixtures.find(f=>!f.played);
+  if(fx) simFixtureList([fx], 'Game');
+}
+function simNextSlateBtn(){
+  const s=league.activeSeason; if(!s) return;
   const unplayed = s.fixtures.filter(f=>!f.played);
-  if(!unplayed.length){ finalizeSeasonIfComplete(); saveLeague(); render(); return; }
-  const round = Math.min(...unplayed.map(f=>f.round));
-  s.fixtures.filter(f=>!f.played && f.round===round).forEach(simulateFixture);
-  finalizeSeasonIfComplete();
+  if(!unplayed.length) return;
+  const slate = Math.min(...unplayed.map(f=>f.slate));
+  simFixtureList(unplayed.filter(f=>f.slate===slate), `Slate ${slate}`);
+}
+function simNSlatesBtn(n){
+  const s=league.activeSeason; if(!s) return;
+  n = Math.max(1, parseInt(n)||1);
+  const unplayed = s.fixtures.filter(f=>!f.played);
+  if(!unplayed.length) return;
+  const slates = [...new Set(unplayed.map(f=>f.slate))].sort((a,b)=>a-b).slice(0,n);
+  simFixtureList(unplayed.filter(f=>slates.includes(f.slate)), `${n} slate(s)`);
+}
+function simRestOfRegularBtn(){
+  const s=league.activeSeason; if(!s) return;
+  simFixtureList(s.fixtures.filter(f=>!f.played), 'Rest of regular season');
+}
+async function simNextPlayoffGameBtn(){
+  const series = findNextPlayoffSeries();
+  if(!series) return;
+  disableSimButtons(true);
+  showProgress('Playoff game');
+  playSeriesGame(series, series.games.length);
+  advanceBracket();
   saveLeague();
+  hideProgress();
+  disableSimButtons(false);
   render();
 }
-function simRemainingFixtures(){
-  const s = league.activeSeason;
-  if(!s) return;
-  s.fixtures.forEach(f=>{ if(!f.played) simulateFixture(f); });
-  finalizeSeasonIfComplete();
-  saveLeague();
-}
-function simFullSeasonBtn(){
-  simRemainingFixtures();
-  render();
-}
-function runSeasons(nRaw){
-  const n = Math.max(1, Math.min(50, parseInt(nRaw)||1));
-  if(league.activeSeason && !league.activeSeason.complete){
-    simRemainingFixtures();
+async function simRestOfPlayoffsBtn(){
+  disableSimButtons(true);
+  showProgress('Simulating playoffs...');
+  let guard=0;
+  while(true){
+    const series = findNextPlayoffSeries();
+    if(!series || guard++>300) break;
+    playSeriesGame(series, series.games.length);
+    advanceBracket();
+    setProgressText(`Simulating playoffs... (${guard} games)`);
+    await new Promise(r=>setTimeout(r,0));
   }
+  saveLeague();
+  hideProgress();
+  disableSimButtons(false);
+  render();
+}
+async function runNSeasonsBtn(nRaw){
+  const n = Math.max(1, Math.min(10, parseInt(nRaw)||1));
+  disableSimButtons(true);
   for(let i=0;i<n;i++){
-    startSeason();
-    simRemainingFixtures();
+    if(!league.activeSeason) startSeason();
+    const s = league.activeSeason;
+    const unplayed = s.fixtures.filter(f=>!f.played);
+    for(let g=0; g<unplayed.length; g++){
+      const fx = unplayed[g];
+      const result = simulateOneGame(fx.home, fx.away, false);
+      applyFixtureResult(fx, result);
+      if(g%4===3){ setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — regular season ${g+1}/${unplayed.length}`); await new Promise(r=>setTimeout(r,0)); }
+    }
+    checkRegularSeasonComplete();
+    let guard=0;
+    while(true){
+      const series = findNextPlayoffSeries();
+      if(!series || guard++>300) break;
+      playSeriesGame(series, series.games.length);
+      advanceBracket();
+      setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — playoffs, game ${guard}`);
+      await new Promise(r=>setTimeout(r,0));
+    }
+    runFreeAgencyAndAdvance();
+    if(i<n-1) startSeason();
   }
+  saveLeague();
+  hideProgress();
+  disableSimButtons(false);
+  render();
+}
+function startNextSeasonBtn(){
+  if(!league.activeSeason || !league.activeSeason.playoffs || !league.activeSeason.playoffs.complete) return;
+  runFreeAgencyAndAdvance();
+  startSeason();
   render();
 }
 
-// ---- Rendering ----
-function renderLeague(){
+// ---- Live watch mode: same tick engine, driven interactively ----
+let liveWatch = null; // {st, ctx, homeTeamName, awayTeamName, formationA, formationB}
+let liveTimer = null;
+
+function startWatch(homeTeamId, awayTeamId, decisive, ctx){
+  const homeTeam = league.teams.find(t=>t.id===homeTeamId);
+  const awayTeam = league.teams.find(t=>t.id===awayTeamId);
+  const homePlayers = homeTeam.playerIds.map(pid=>({...league.players[pid]}));
+  const awayPlayers = awayTeam.playerIds.map(pid=>({...league.players[pid]}));
+  const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 3);
+  teamA.name = homeTeam.name; teamB.name = awayTeam.name;
+  const st = createMatchState(teamA, teamB, decisive);
+  liveWatch = {st, ctx, homeTeamName:homeTeam.name, awayTeamName:awayTeam.name, formationA, formationB};
+  document.getElementById('live-panel').classList.remove('hidden');
+  document.getElementById('live-controls').classList.remove('hidden');
+  document.getElementById('live-final').classList.add('hidden');
+  document.getElementById('live-log').innerHTML='';
+  renderLive();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function watchNextGameBtn(){
+  const s=league.activeSeason; if(!s) return;
+  const fx = s.fixtures.find(f=>!f.played);
+  if(!fx) return;
+  startWatch(fx.home, fx.away, false, {kind:'regular', fx});
+}
+function watchNextPlayoffGameBtn(){
+  const series = findNextPlayoffSeries();
+  if(!series) return;
+  const gameIndex = series.games.length;
+  const aHome = gameIndex%2===0;
+  const homeId = aHome? series.teamA : series.teamB;
+  const awayId = aHome? series.teamB : series.teamA;
+  startWatch(homeId, awayId, true, {kind:'playoff', series, gameIndex, homeId, awayId});
+}
+function appendLiveLog(){
+  if(!liveWatch.st.lastText) return;
+  const log=document.getElementById('live-log');
+  const div=document.createElement('div'); div.className='log-entry';
+  div.textContent = `${formatClock(liveWatch.st.minute)} — ${liveWatch.st.lastText}`;
+  log.appendChild(div); log.scrollTop=log.scrollHeight;
+}
+function liveAdvance(){
+  if(!liveWatch||liveWatch.st.over) return;
+  matchTick(liveWatch.st);
+  appendLiveLog();
+  renderLive();
+  if(liveWatch.st.over) finishLiveWatch();
+}
+function liveSimUntilChance(){
+  if(!liveWatch||liveWatch.st.over) return;
+  const wasInBox = liveWatch.st.inBox;
+  clearInterval(liveTimer);
+  liveTimer = setInterval(()=>{
+    matchTick(liveWatch.st);
+    appendLiveLog();
+    renderLive();
+    if(!liveWatch || liveWatch.st.over || (liveWatch.st.inBox && !wasInBox)){
+      clearInterval(liveTimer);
+      if(liveWatch && liveWatch.st.over) finishLiveWatch();
+    }
+  }, 60);
+}
+function liveSimRest(){
+  if(!liveWatch||liveWatch.st.over) return;
+  clearInterval(liveTimer);
+  liveTimer = setInterval(()=>{
+    matchTick(liveWatch.st);
+    appendLiveLog();
+    renderLive();
+    if(!liveWatch || liveWatch.st.over){
+      clearInterval(liveTimer);
+      if(liveWatch && liveWatch.st.over) finishLiveWatch();
+    }
+  }, 35);
+}
+function finishLiveWatch(){
+  const result = finalizeMatchResult(liveWatch.st);
+  result.homeFormation = liveWatch.formationA;
+  result.awayFormation = liveWatch.formationB;
+  if(liveWatch.ctx.kind==='regular'){
+    applyFixtureResult(liveWatch.ctx.fx, result);
+    checkRegularSeasonComplete();
+  } else {
+    recordSeriesGame(liveWatch.ctx.series, liveWatch.ctx.homeId, liveWatch.ctx.awayId, liveWatch.ctx.gameIndex, result);
+    advanceBracket();
+  }
+  document.getElementById('live-controls').classList.add('hidden');
+  const finalEl = document.getElementById('live-final');
+  finalEl.classList.remove('hidden');
+  finalEl.textContent = buildLiveFinalText(result);
+  saveLeague();
+  render();
+}
+function buildLiveFinalText(result){
+  let txt = `Full time — ${liveWatch.homeTeamName} ${result.homeGoals}–${result.awayGoals} ${liveWatch.awayTeamName}`;
+  if(result.wentToPens){ txt += ` (${liveWatch.homeTeamName} ${result.pensScore.home}–${result.pensScore.away} ${liveWatch.awayTeamName} on penalties)`; }
+  else if(result.wentToET){ txt += ' (after extra time)'; }
+  return txt;
+}
+function closeLive(){
+  clearInterval(liveTimer);
+  liveWatch = null;
+  document.getElementById('live-panel').classList.add('hidden');
+  render();
+}
+function renderLive(){
+  if(!liveWatch) return;
+  const st = liveWatch.st;
+  document.getElementById('live-home-name').textContent = liveWatch.homeTeamName;
+  document.getElementById('live-away-name').textContent = liveWatch.awayTeamName;
+  document.getElementById('live-home-score').textContent = st.score.home;
+  document.getElementById('live-away-score').textContent = st.score.away;
+  let clockTxt;
+  if(st.stage==='penalties') clockTxt = 'PENS';
+  else clockTxt = formatClock(Math.min(st.minute, st.stage==='extratime'?ET_END:REGULATION_END)) + (st.stage==='extratime'?' ET':'');
+  document.getElementById('live-clock').textContent = clockTxt;
+  const pitch = document.getElementById('live-pitch');
+  pitch.innerHTML='';
+  for(let i=0;i<5;i++){
+    const z=document.createElement('div');
+    z.className='zone'+(i===0?' atk-away':i===4?' atk-home':'');
+    if(st.zone===i && st.stage!=='penalties'){ const ball=document.createElement('div'); ball.className='ball'; z.appendChild(ball); }
+    pitch.appendChild(z);
+  }
+}
+
+// ---- Tabs ----
+let activeTab = 'season';
+function switchTab(tab){
+  activeTab = tab;
+  document.querySelectorAll('.tabbtn[data-tab]').forEach(b=> b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.tabpanel').forEach(p=> p.classList.toggle('active', p.id==='tab-'+tab));
+}
+let statsScope = 'season';
+function setStatsScope(scope){
+  statsScope = scope;
+  document.getElementById('stats-scope-season').classList.toggle('active', scope==='season');
+  document.getElementById('stats-scope-career').classList.toggle('active', scope==='career');
+  renderStats();
+}
+
+function teamName(id){ const t=league.teams.find(t=>t.id===id); return t? t.name : '—'; }
+function teamColor(id){ const t=league.teams.find(t=>t.id===id); return t? t.color : '#888'; }
+
+// ---- Season tab ----
+function renderSeasonTab(){
+  const card = document.getElementById('season-status-card');
   const s = league.activeSeason;
-  const leagueCard = document.getElementById('league-card');
-  const offCard = document.getElementById('offseason-card');
-  if(!s){ leagueCard.classList.add('hidden'); offCard.classList.add('hidden'); return; }
-  leagueCard.classList.remove('hidden');
+  if(!s){
+    card.innerHTML = `<h2>Ready</h2><div class="report-block">Draft's done. Start the first season whenever you're ready.</div>
+      <button class="btn" onclick="startSeason(); render();">Start Season 1</button>`;
+    document.getElementById('offseason-card').classList.add('hidden');
+    return;
+  }
+  const played = s.fixtures.filter(f=>f.played).length;
+  let html = `<h2>Season ${s.seasonNum}</h2>`;
+  if(!s.regularComplete){
+    html += `<div class="report-block">Regular season — ${played} / ${s.fixtures.length} games played.</div>
+      <div class="btn-row">
+        <button class="btn small sim-btn" onclick="watchNextGameBtn()">Watch next game</button>
+        <button class="btn secondary small sim-btn" onclick="simNextGameBtn()">Sim next game</button>
+        <button class="btn secondary small sim-btn" onclick="simNextSlateBtn()">Sim next slate</button>
+        <input type="number" class="num-input" id="n-slates" min="1" max="15" value="3">
+        <button class="btn secondary small sim-btn" onclick="simNSlatesBtn(document.getElementById('n-slates').value)">Sim N slates</button>
+        <button class="btn secondary small sim-btn" onclick="simRestOfRegularBtn()">Sim rest of regular season</button>
+      </div>`;
+  } else if(!s.playoffs.complete){
+    html += `<div class="report-block">Regular season complete. Playoffs are underway — see the Playoffs tab for the bracket.</div>
+      <div class="btn-row">
+        <button class="btn small sim-btn" onclick="watchNextPlayoffGameBtn()">Watch next playoff game</button>
+        <button class="btn secondary small sim-btn" onclick="simNextPlayoffGameBtn()">Sim next playoff game</button>
+        <button class="btn secondary small sim-btn" onclick="simRestOfPlayoffsBtn()">Sim rest of playoffs</button>
+      </div>`;
+  } else {
+    const champ = teamName(s.playoffs.champion);
+    html += `<div class="report-block"><b style="color:var(--amber);">${escapeHtml(champ)}</b> won the Season ${s.seasonNum} championship. Regular-season winner: ${escapeHtml(teamName(s.regularStandingsSnapshot[0].id))}.</div>`;
+  }
+  card.innerHTML = html;
 
-  document.getElementById('season-num').textContent = s.seasonNum;
-  document.getElementById('btn-matchday').disabled = s.complete;
-  document.getElementById('btn-full-season').disabled = s.complete;
+  const off = document.getElementById('offseason-card');
+  if(s.playoffs && s.playoffs.complete){
+    off.classList.remove('hidden');
+    off.innerHTML = `<h2>Offseason</h2>
+      <div class="report-block">Runs the Time/free-agency mechanic exactly once, then opens Season ${s.seasonNum+1}.</div>
+      <div class="btn-row">
+        <button class="btn" onclick="startNextSeasonBtn()">Run Offseason &amp; Start Season ${s.seasonNum+1}</button>
+        <input type="number" class="num-input" id="n-seasons" min="1" max="10" value="3">
+        <button class="btn secondary sim-btn" onclick="runNSeasonsBtn(document.getElementById('n-seasons').value)">Run N more seasons</button>
+      </div>`;
+  } else {
+    off.classList.add('hidden');
+  }
+}
 
-  const table = computeStandings(s.teamsSnapshot, s.fixtures);
-  document.getElementById('standings-body').innerHTML = table.map((r,i)=>`
+// ---- Standings tab ----
+function renderStandingsTab(){
+  const s = league.activeSeason;
+  const body = document.getElementById('standings-body');
+  if(!s){ body.innerHTML = `<tr><td colspan="10" class="dim">No season yet.</td></tr>`; return; }
+  const table = computeStandings(league.teams, s.fixtures);
+  body.innerHTML = table.map(r=>`
     <tr>
-      <td>${i+1}</td>
+      <td>${r.rk}</td>
       <td><span class="dot" style="background:${r.color}"></span>${escapeHtml(r.name)}</td>
       <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
       <td>${r.gf}</td><td>${r.ga}</td><td>${r.gf-r.ga}</td><td><b>${r.pts}</b></td>
     </tr>`).join('');
-
-  const totals = computeSeasonPlayerTotals(s.fixtures);
-  const ranked = Object.entries(totals).map(([id,t])=>({
-    id, name: league.players[id].name, team: teamNameForPlayerInSnapshot(s.teamsSnapshot,id), ...t
-  }));
-  const topScorers = [...ranked].sort((a,b)=>b.goals-a.goals || b.assists-a.assists).slice(0,10);
-  const topAssists = [...ranked].sort((a,b)=>b.assists-a.assists || b.goals-a.goals).slice(0,10);
-  document.getElementById('top-scorers').innerHTML = topScorers.length
-    ? topScorers.map((p,i)=>`<div>${i+1}. <b>${escapeHtml(p.name)}</b> <span class="dim">(${escapeHtml(p.team)})</span> — ${p.goals} g</div>`).join('')
-    : '<div class="dim">No goals yet.</div>';
-  document.getElementById('top-assists').innerHTML = topAssists.length
-    ? topAssists.map((p,i)=>`<div>${i+1}. <b>${escapeHtml(p.name)}</b> <span class="dim">(${escapeHtml(p.team)})</span> — ${p.assists} a</div>`).join('')
-    : '<div class="dim">No assists yet.</div>';
-
-  const playedRounds = s.fixtures.filter(f=>f.played).map(f=>f.round);
-  const lastRound = playedRounds.length ? Math.max(...playedRounds) : null;
-  const latest = lastRound ? s.fixtures.filter(f=>f.round===lastRound && f.played) : [];
-  document.getElementById('latest-results').innerHTML = latest.length
-    ? latest.map(f=>{
-        const h=teamById(s.teamsSnapshot,f.home), a=teamById(s.teamsSnapshot,f.away);
-        return `<div class="log-entry">${escapeHtml(h.name)} ${f.hg} – ${f.ag} ${escapeHtml(a.name)}</div>`;
-      }).join('')
-    : '<div class="dim">No matches played yet.</div>';
-
-  document.getElementById('fixtures-progress').textContent =
-    `${s.fixtures.filter(f=>f.played).length} / ${s.fixtures.length} matches played`;
-
-  if(s.complete){
-    offCard.classList.remove('hidden');
-    document.getElementById('next-season-num').textContent = s.seasonNum+1;
-    const champ = table[0];
-    const topScorer = topScorers[0];
-    document.getElementById('offseason-summary').innerHTML =
-      `Champion: <span style="color:${champ.color}">${escapeHtml(champ.name)}</span> (${champ.pts} pts)`+
-      (topScorer ? `<br><span style="font-size:15px;color:var(--chalk);">Golden Boot: ${escapeHtml(topScorer.name)} — ${topScorer.goals} goals</span>` : '');
-  } else {
-    offCard.classList.add('hidden');
-  }
 }
-function renderCareer(){
-  const rows = Object.entries(league.careerStats).map(([id,c])=>{
-    const p = league.players[id];
-    if(!p) return null;
-    return { id, name:p.name, team: teamNameForPlayerCurrent(id), ...c };
-  }).filter(Boolean).sort((a,b)=> b.goals-a.goals || b.assists-a.assists);
 
-  document.getElementById('career-body').innerHTML = rows.length ? rows.map(r=>`
-    <tr>
-      <td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${r.games}</td>
-      <td>${r.goals}</td><td>${r.assists}</td><td>${r.gkGames}</td><td>${r.cleanSheets}</td><td>${r.conceded}</td>
-    </tr>`).join('') : `<tr><td colspan="8" class="dim">No seasons completed yet.</td></tr>`;
+// ---- Schedule tab ----
+function renderScheduleTab(){
+  const s = league.activeSeason;
+  const el = document.getElementById('schedule-list');
+  if(!s){ el.innerHTML = `<div class="dim">No season yet.</div>`; return; }
+  const bySlate = {};
+  s.fixtures.forEach(f=>{ (bySlate[f.slate] = bySlate[f.slate]||[]).push(f); });
+  const nextFx = s.fixtures.find(f=>!f.played);
+  let html='';
+  Object.keys(bySlate).sort((a,b)=>a-b).forEach(slate=>{
+    html += `<div class="slate-hd">Slate ${slate}</div>`;
+    bySlate[slate].forEach(f=>{
+      const isNext = f===nextFx;
+      html += `<div class="fixture-row">
+        <span class="dim">${isNext?'&rarr;':''}</span>
+        <span class="side"><span class="dot" style="background:${teamColor(f.home)}"></span>${escapeHtml(teamName(f.home))}</span>
+        <span class="score">${f.played? `${f.hg}-${f.ag}` : 'vs'}</span>
+        <span class="side away">${escapeHtml(teamName(f.away))}<span class="dot" style="background:${teamColor(f.away)}"></span></span>
+        <span>${isNext? `<button class="btn secondary small sim-btn" onclick="simNextGameBtn()">Sim</button>` : ''}</span>
+      </div>`;
+    });
+  });
+  el.innerHTML = html;
+}
 
+// ---- Playoffs tab ----
+function seriesBoxHtml(series, label){
+  if(!series.teamA || !series.teamB){
+    return `<div class="series-box"><div class="lbl">${label}</div><div class="dim">Awaiting previous round</div></div>`;
+  }
+  const aWins = series.wins[series.teamA]||0, bWins = series.wins[series.teamB]||0;
+  const aLine = `<div class="team-line${series.winnerTeamId===series.teamA?' winner':''}"><span>${escapeHtml(teamName(series.teamA))}</span><span>${aWins}</span></div>`;
+  const bLine = `<div class="team-line${series.winnerTeamId===series.teamB?' winner':''}"><span>${escapeHtml(teamName(series.teamB))}</span><span>${bWins}</span></div>`;
+  const games = series.games.map(g=>{
+    const pens = g.wentToPens ? ` (pens ${g.pensScore.home}-${g.pensScore.away})` : (g.wentToET? ' (ET)':'');
+    return `<div class="dim" style="font-size:11px;">${escapeHtml(teamName(g.home))} ${g.hg}-${g.ag} ${escapeHtml(teamName(g.away))}${pens}</div>`;
+  }).join('');
+  return `<div class="series-box"><div class="lbl">${label} &middot; Bo${series.bestOf}</div>${aLine}${bLine}${games}</div>`;
+}
+function renderPlayoffsTab(){
+  const card = document.getElementById('playoffs-card');
+  const s = league.activeSeason;
+  if(!s || !s.regularComplete){
+    card.innerHTML = `<h2>Playoffs</h2><div class="report-block">Playoffs begin once the regular season is complete.</div>`;
+    return;
+  }
+  const po = s.playoffs;
+  const seedList = po.seeds.map((id,i)=>`<div>${i+1}. ${escapeHtml(teamName(id))}</div>`).join('');
+  let html = `<h2>Playoffs — Season ${s.seasonNum}</h2>`;
+  if(!po.complete){
+    html += `<div class="btn-row" style="margin-bottom:14px;">
+      <button class="btn small sim-btn" onclick="watchNextPlayoffGameBtn()">Watch next game</button>
+      <button class="btn secondary small sim-btn" onclick="simNextPlayoffGameBtn()">Sim next game</button>
+      <button class="btn secondary small sim-btn" onclick="simRestOfPlayoffsBtn()">Sim rest of playoffs</button>
+    </div>`;
+  } else {
+    html += `<div class="report-block"><b style="color:var(--amber);">Champion: ${escapeHtml(teamName(po.champion))}</b></div>`;
+  }
+  html += `<div class="three-col" style="margin-bottom:16px;">
+    <div><div class="bracket-round-title">Seeds</div><div class="leaderboard">${seedList}</div></div>
+    <div class="bracket-col"><div class="bracket-round-title">Wild card</div>${seriesBoxHtml(po.wildcard.m1,'8 vs 9')}${seriesBoxHtml(po.wildcard.m2,'7 vs 10')}</div>
+    <div class="bracket-col"><div class="bracket-round-title">Round 1</div>${seriesBoxHtml(po.round1.a,'1 vs (8/9)')}${seriesBoxHtml(po.round1.b,'4 vs 5')}${seriesBoxHtml(po.round1.c,'2 vs (7/10)')}${seriesBoxHtml(po.round1.d,'3 vs 6')}</div>
+  </div>
+  <div class="two-col">
+    <div class="bracket-col"><div class="bracket-round-title">Semis</div>${seriesBoxHtml(po.semis.s1,'Semi 1')}${seriesBoxHtml(po.semis.s2,'Semi 2')}</div>
+    <div class="bracket-col"><div class="bracket-round-title">Final</div>${seriesBoxHtml(po.finals,'Championship')}</div>
+  </div>`;
+  card.innerHTML = html;
+}
+
+// ---- Teams tab ----
+function renderTeamsTab(){
+  const s = league.activeSeason;
+  const standings = s ? computeStandings(league.teams, s.fixtures) : null;
+  const grid = document.getElementById('team-grid');
+  grid.innerHTML = league.teams.map(t=>{
+    const rec = standings ? standings.find(r=>r.id===t.id) : null;
+    const recTxt = rec ? `${rec.w}-${rec.d}-${rec.l} &middot; ${rec.pts} pts &middot; Rk ${rec.rk}` : 'No games yet';
+    const rows = t.playerIds.map(pid=>{
+      const p = league.players[pid];
+      return `<div class="roster-row"><span>${escapeHtml(p.name)}</span><span>G${p.grade}</span><span>${p.off}</span><span>${p.def}</span><span>${p.time.toFixed(1)}t</span></div>`;
+    }).join('');
+    return `<div class="team-card">
+      <div class="thead"><span class="dot" style="background:${t.color}"></span><b>${escapeHtml(t.name)}</b></div>
+      <div class="record">${recTxt}</div>
+      <div class="roster-row hd"><span>Player</span><span>Gr</span><span>Off</span><span>Def</span><span>Time</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// ---- Stats tab ----
+function renderStats(){
+  let source;
+  if(statsScope==='career'){
+    source = Object.entries(league.careerStats).map(([id,c])=>({id,...c}));
+  } else {
+    const totals = league.activeSeason ? computeSeasonTotals(league.activeSeason) : {};
+    source = Object.entries(totals).map(([id,c])=>({id,goals:c.goals||0,assists:c.assists||0,saves:c.saves||0}));
+  }
+  const withNames = source.filter(r=>league.players[r.id]).map(r=>({...r, name:league.players[r.id].name, team:teamName(league.players[r.id].teamId)}));
+  function top(key){
+    return withNames.slice().sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,10)
+      .map((p,i)=>`<div>${i+1}. <b>${escapeHtml(p.name)}</b> <span class="dim">(${escapeHtml(p.team)})</span> — ${p[key]||0}</div>`).join('') || '<div class="dim">No data yet.</div>';
+  }
+  document.getElementById('stats-goals').innerHTML = top('goals');
+  document.getElementById('stats-assists').innerHTML = top('assists');
+  document.getElementById('stats-saves').innerHTML = top('saves');
+}
+
+// ---- Draft tab ----
+function renderDraftTab(){
+  const el = document.getElementById('draft-report');
+  if(!league.draftDone){ el.innerHTML = `<div class="dim">Run the draft first.</div>`; return; }
+  const orderTxt = league.draftReport.order.map(id=>escapeHtml(teamName(id))).join(' &rarr; ');
+  let html = `<div class="report-block"><b>Draft order:</b> ${orderTxt}</div>`;
+  html += `<div class="log">` + league.draftReport.picks.map(pk=>
+    `<div class="log-entry">R${pk.round} P${pk.pick} — <b>${escapeHtml(teamName(pk.teamId))}</b> select ${escapeHtml(league.players[pk.playerId].name)} <span class="dim">(value ${pk.value.toFixed(1)})</span></div>`
+  ).join('') + `</div>`;
+  el.innerHTML = html;
+}
+
+// ---- History tab ----
+function renderHistoryTab(){
   document.getElementById('history-list').innerHTML = league.history.length
     ? league.history.slice().reverse().map(h=>
-        `<div class="log-entry">Season ${h.seasonNum} — Champion <b>${escapeHtml(h.championName)}</b>`+
-        (h.topScorer ? ` · Golden Boot: ${escapeHtml(h.topScorer.name)} (${h.topScorer.goals})` : '')+
+        `<div class="log-entry">Season ${h.seasonNum} — Champion <b>${escapeHtml(h.champTeamName)}</b> ` +
+        `<span class="dim">(regular season: ${escapeHtml(h.regularSeasonWinner)})</span>` +
+        (h.topScorer? ` &middot; Golden Boot: ${escapeHtml(h.topScorer.name)} (${h.topScorer.goals})` : '') +
         `</div>`
       ).join('')
     : '<div class="dim">No seasons completed yet.</div>';
+
+  const rep = league.offseasonReport;
+  const detail = document.getElementById('offseason-report-detail');
+  if(!rep){ detail.innerHTML = '<div class="dim">No offseason has run yet.</div>'; return; }
+  const rows = rep.faReport.map(r=>
+    `<div class="log-entry">${escapeHtml(teamName(r.teamId))} sign <b>${escapeHtml(league.players[r.playerId].name)}</b> <span class="dim">(rating ${r.rating.toFixed(1)})</span></div>`
+  ).join('');
+  detail.innerHTML = `<div class="report-block">After Season ${rep.afterSeasonNum}: Free Agency threshold was <b>${rep.threshold.toFixed(2)}</b>, ${rep.faCount} players entered the pool.</div><div class="log">${rows}</div>`;
 }
+
+// ---- Master render ----
 function render(){
-  const started = league.seasonNum>0;
-  document.getElementById('setup-card').classList.toggle('hidden', started);
-  if(!started) renderSetup();
-  renderLeague();
-  renderCareer();
+  if(!league.draftDone){
+    document.getElementById('draft-gate').classList.remove('hidden');
+    document.getElementById('app-root').classList.add('hidden');
+    return;
+  }
+  document.getElementById('draft-gate').classList.add('hidden');
+  document.getElementById('app-root').classList.remove('hidden');
+  renderSeasonTab();
+  renderStandingsTab();
+  renderScheduleTab();
+  renderPlayoffsTab();
+  renderTeamsTab();
+  renderStats();
+  renderDraftTab();
+  renderHistoryTab();
+  switchTab(activeTab);
 }
 render();
 </script>
