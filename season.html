@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The League — season simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --turf-dark:#0f3320;
+    --turf-light:#154027;
+    --chalk:#eef2e8;
+    --chalk-dim:#b9c4b3;
+    --amber:#e8b23c;
+    --ink:#081a10;
+    --card:#123422;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:
+      repeating-linear-gradient(90deg, var(--turf-dark) 0 60px, var(--turf-light) 60px 120px);
+    color:var(--chalk);
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  h1,h2,h3{font-family:'Anton',sans-serif; font-weight:400; letter-spacing:.03em; margin:0;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  .subnav{text-align:center;margin-bottom:10px;}
+  .subnav a{color:var(--amber);text-decoration:none;font-size:13px;letter-spacing:.03em;}
+  .subnav a:hover{text-decoration:underline;}
+  .title{text-align:center;font-size:38px;color:var(--chalk);text-shadow:0 2px 0 rgba(0,0,0,.35);margin-bottom:4px;}
+  .subtitle{text-align:center;color:var(--chalk-dim);font-size:14px;margin-bottom:28px;letter-spacing:.04em;text-transform:uppercase;}
+  .card{background:var(--card);border:1px solid rgba(238,242,232,.12);border-radius:10px;padding:20px 22px;margin-bottom:20px;}
+  .card h2{font-size:22px;margin-bottom:14px;}
+  .hidden{display:none;}
+  .dim{color:var(--chalk-dim);}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+  .btn{font-family:'Inter',sans-serif;font-weight:600;font-size:14px;background:var(--amber);color:#2a1c04;border:none;border-radius:7px;padding:12px 20px;cursor:pointer;letter-spacing:.02em;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn.secondary{background:transparent;color:var(--chalk);border:1px solid rgba(238,242,232,.35);}
+  .btn.small{padding:8px 14px;font-size:13px;}
+  .btn.danger{border-color:rgba(220,90,80,.5);color:#f3b3ac;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+  .num-input{width:64px;background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.18);border-radius:6px;color:var(--chalk);padding:8px;font-size:13px;text-align:center;}
+
+  .setup-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+  .paste-box textarea{width:100%;min-height:110px;background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.18);border-radius:6px;color:var(--chalk);font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px;resize:vertical;}
+  .paste-box .hint{font-size:11px;color:var(--chalk-dim);margin:4px 0 8px;}
+  .paste-status{font-size:11px;color:var(--chalk-dim);margin-top:4px;font-family:'JetBrains Mono',monospace;}
+
+  .setup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:16px;}
+  .team-setup-card{background:rgba(238,242,232,.04);border:1px solid rgba(238,242,232,.14);border-radius:8px;padding:14px;}
+  .team-setup-card .header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .team-setup-card input[type=color]{-webkit-appearance:none;appearance:none;border:none;width:24px;height:24px;border-radius:50%;padding:0;cursor:pointer;flex-shrink:0;}
+  .team-setup-card input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
+  .team-setup-card input[type=color]::-webkit-color-swatch{border:none;border-radius:50%;}
+  .team-name-input-sm{flex:1;min-width:0;font-family:'Anton',sans-serif;font-size:16px;background:transparent;border:none;border-bottom:2px solid rgba(238,242,232,.25);color:var(--chalk);padding:4px 2px;}
+  .team-name-input-sm:focus{outline:none;}
+  .formation-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;}
+  .formation-row label{color:var(--chalk-dim);text-transform:uppercase;letter-spacing:.05em;font-size:10px;}
+  .formation-row select{background:rgba(238,242,232,.08);border:1px solid rgba(238,242,232,.2);color:var(--chalk);border-radius:6px;padding:4px 6px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+  .formation-row .fbreak{color:var(--chalk-dim);font-size:10px;font-family:'JetBrains Mono',monospace;}
+  .col-head-sm{display:grid;grid-template-columns:26px 1fr 44px 44px;gap:5px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--chalk-dim);margin-bottom:5px;}
+  .player-row{display:grid;grid-template-columns:26px 1fr 44px 44px;gap:5px;align-items:center;margin-bottom:5px;font-size:12px;}
+  .player-row .tag{font-family:'JetBrains Mono',monospace;color:var(--chalk-dim);font-size:10px;}
+  .player-row input[type=text]{background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.15);border-radius:5px;color:var(--chalk);padding:5px 6px;font-size:12px;font-family:'Inter',sans-serif;width:100%;}
+  .player-row input[type=number]{background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.15);border-radius:5px;color:var(--chalk);padding:5px 3px;font-size:12px;width:100%;text-align:center;}
+
+  .league-header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .league-header .season-lbl{font-size:24px;}
+  .league-header .progress{font-size:12px;color:var(--chalk-dim);font-family:'JetBrains Mono',monospace;}
+
+  table.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.data-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--chalk-dim);padding:6px 8px;border-bottom:1px solid rgba(238,242,232,.15);}
+  table.data-table td{padding:6px 8px;border-bottom:1px solid rgba(238,242,232,.06);}
+  table.data-table th:not(:first-child):not(:nth-child(2)),
+  table.data-table td:not(:first-child):not(:nth-child(2)){text-align:center;}
+  .table-scroll{overflow-x:auto;}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;}
+  @media (max-width:640px){.two-col{grid-template-columns:1fr;}}
+  .leaderboard{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.9;background:var(--ink);border-radius:8px;padding:10px 14px;}
+  .leaderboard b{color:var(--chalk);}
+
+  .log{max-height:220px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.9;background:var(--ink);border-radius:8px;padding:10px 14px;margin-top:12px;}
+  .log-entry{border-bottom:1px solid rgba(238,242,232,.06);padding:3px 0;}
+  .log-entry:last-child{border-bottom:none;}
+
+  .champion-banner{text-align:center;font-family:'Anton',sans-serif;font-size:22px;color:var(--amber);margin-bottom:10px;letter-spacing:.03em;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="subnav"><a href="index.html">&larr; Match Simulator</a></div>
+  <div class="title">The League</div>
+  <div class="subtitle">96 players &middot; 16 teams &middot; multi-season dice simulation</div>
+  <div style="text-align:right;margin:-18px 0 14px;">
+    <button class="btn danger small" onclick="resetLeague()">Reset league</button>
+  </div>
+
+  <div class="card" id="setup-card">
+    <div class="setup-toolbar">
+      <h2>League setup</h2>
+    </div>
+    <div style="font-size:13px;color:var(--chalk-dim);line-height:1.6;margin-bottom:14px;">
+      16 teams of 6, first player on each roster is the goalkeeper — exactly like the match
+      simulator. Edit players directly below, or paste all 96 at once (6 lines fill one team,
+      in the order the team cards appear).
+    </div>
+    <div class="paste-box">
+      <div class="hint">One player per line: name, then Off, then Def — tab or space separated. Up to 96 lines.</div>
+      <textarea id="league-paste-text" placeholder="Elijah&#9;8&#9;9&#10;Toby&#9;6&#9;10&#10;Joey A&#9;7&#9;8"></textarea>
+      <div class="btn-row">
+        <button class="btn secondary small" onclick="importLeaguePaste()">Import 96</button>
+        <button class="btn secondary small" onclick="randomizeAllPlayers()">Randomize all ratings</button>
+      </div>
+      <div class="paste-status" id="league-paste-status"></div>
+    </div>
+    <div class="setup-grid" id="teams-setup-grid"></div>
+    <div class="btn-row" style="margin-top:18px;">
+      <button class="btn" id="start-season-btn" onclick="startSeason(); render();">Start Season 1</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="league-card">
+    <div class="league-header">
+      <div class="season-lbl">Season <span id="season-num"></span></div>
+      <div class="progress" id="fixtures-progress"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn small" onclick="simMatchday()" id="btn-matchday">Sim next matchday</button>
+      <button class="btn secondary small" onclick="simFullSeasonBtn()" id="btn-full-season">Sim rest of season</button>
+      <span style="flex:1"></span>
+      <input type="number" class="num-input" id="run-seasons-count" min="1" max="50" value="5">
+      <button class="btn secondary small" onclick="runSeasons(document.getElementById('run-seasons-count').value)">Run N more seasons</button>
+    </div>
+
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead>
+        <tbody id="standings-body"></tbody>
+      </table>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h2 style="font-size:16px;margin-bottom:8px;">Top scorers</h2>
+        <div class="leaderboard" id="top-scorers"></div>
+      </div>
+      <div>
+        <h2 style="font-size:16px;margin-bottom:8px;">Top assists</h2>
+        <div class="leaderboard" id="top-assists"></div>
+      </div>
+    </div>
+
+    <h2 style="font-size:16px;margin:16px 0 6px;">Latest results</h2>
+    <div class="log" id="latest-results"></div>
+  </div>
+
+  <div class="card hidden" id="offseason-card">
+    <h2>Season complete</h2>
+    <div class="champion-banner" id="offseason-summary"></div>
+    <div style="font-size:13px;color:var(--chalk-dim);line-height:1.6;margin:10px 0 16px;">
+      <b style="color:var(--chalk);">Offseason player movement</b> isn't implemented yet — rosters
+      carry over unchanged into the next season. This is a placeholder for trades, drafts, or
+      free agency, to be defined later.
+    </div>
+    <button class="btn" onclick="startSeason(); render();">Start Season <span id="next-season-num"></span></button>
+  </div>
+
+  <div class="card" id="career-card">
+    <h2>Career stats</h2>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>Player</th><th>Team</th><th>Gms</th><th>Goals</th><th>Assists</th><th>GK Gms</th><th>Clean Sheets</th><th>Conceded</th></tr></thead>
+        <tbody id="career-body"></tbody>
+      </table>
+    </div>
+    <h2 style="font-size:16px;margin:18px 0 6px;">Season history</h2>
+    <div class="log" id="history-list"></div>
+  </div>
+</div>
+
+<script>
+// ---- Constants shared with the match simulator's engine ----
+const TEAM_COLORS = [
+  {name:'Rocky Rangers',       hex:'#e6e6e6'},
+  {name:'Northern Nationals',  hex:'#ffcfc9'},
+  {name:'Southern Saints',     hex:'#ffc8aa'},
+  {name:'Pacific Pirates',     hex:'#ffe5a0'},
+  {name:'Eastern Eagles',      hex:'#d4edbc'},
+  {name:'Gulf Guardians',      hex:'#bfe1f6'},
+  {name:'Western Warriors',    hex:'#c6dbe1'},
+  {name:'Atlantic Angels',     hex:'#e6cff2'},
+  {name:'Midwest Mavericks',   hex:'#3d3d3d'},
+  {name:'Coastal Cardinals',   hex:'#b10202'},
+  {name:'Sierra Suns',         hex:'#753800'},
+  {name:'Desert Diamondbacks', hex:'#473822'},
+  {name:'Central Celtics',     hex:'#11734b'},
+  {name:'Canyon Cubs',         hex:'#0a53a8'},
+  {name:'Prairie Panthers',    hex:'#215a6c'},
+  {name:'Valley Vikings',      hex:'#5a3286'}
+];
+const formationCounts = {
+  '2-2-1':{defender:2, midfielder:2, forward:1},
+  '2-1-2':{defender:2, midfielder:1, forward:2},
+  '3-1-1':{defender:3, midfielder:1, forward:1},
+  '1-3-1':{defender:1, midfielder:3, forward:1}
+};
+const positionAbbr = {defender:'D', midfielder:'M', forward:'F'};
+const attackWeight = {forward:3, midfielder:2, defender:1};
+const defenseWeight = {defender:3, midfielder:2, forward:1};
+
+function positionForSlot(formationKey, slotIndex){
+  const counts = formationCounts[formationKey];
+  const order = [['defender',counts.defender],['midfielder',counts.midfielder],['forward',counts.forward]];
+  let idx = slotIndex;
+  for(const [pos,count] of order){
+    if(idx<count) return pos;
+    idx-=count;
+  }
+  return 'forward';
+}
+function countSlotNumber(formationKey, slotIndex, pos){
+  let n=0;
+  for(let s=0;s<=slotIndex;s++){ if(positionForSlot(formationKey,s)===pos) n++; }
+  return n;
+}
+function formationSummary(fKey){
+  const c=formationCounts[fKey];
+  return `D${c.defender} · M${c.midfielder} · F${c.forward}`;
+}
+function d6(){return 1+Math.floor(Math.random()*6);}
+function rollDice(){return 1+Math.floor(Math.random()*20);}
+function boost(rating){ return Math.floor(rating*1.5); }
+function clampRating(v){v=parseInt(v);if(isNaN(v))v=0;return Math.max(0,Math.min(10,v));}
+function weightedPick(players, weightTable){
+  const pool = players.filter(p=>!p.isGK).map(p=>({p, w:weightTable[p.position]||0})).filter(x=>x.w>0);
+  const total = pool.reduce((s,x)=>s+x.w,0);
+  let r = Math.random()*total;
+  for(const x of pool){ if(r<x.w) return x.p; r-=x.w; }
+  return pool[pool.length-1].p;
+}
+function keeperOf(team){return team.players.find(p=>p.isGK);}
+
+function stripQuotes(s){
+  return s.trim().replace(/^[\"'“”‘’]+/, '').replace(/[\"'“”‘’]+$/, '').trim();
+}
+function parseLeaguePaste(text){
+  const lines = text.split('\n').map(l=>stripQuotes(l)).filter(l=>l.length>0);
+  const players=[];
+  for(const line of lines){
+    let parts = line.split('\t').map(p=>stripQuotes(p)).filter(p=>p.length>0);
+    if(parts.length<3){
+      const tokens = line.trim().split(/\s+/).map(t=>stripQuotes(t));
+      if(tokens.length>=3){
+        const off = tokens[tokens.length-2];
+        const def = tokens[tokens.length-1];
+        const name = tokens.slice(0, tokens.length-2).join(' ');
+        parts = [stripQuotes(name), off, def];
+      }
+    }
+    if(parts.length>=3 && !isNaN(parseFloat(parts[1])) && !isNaN(parseFloat(parts[2]))){
+      players.push({name:parts[0], off:clampRating(parts[1]), def:clampRating(parts[2])});
+    }
+  }
+  return players;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---- Headless match engine (mirrors index.html's stepMinute, minus DOM/UI) ----
+function buildMatchTeam(team, playersMap){
+  return {
+    id: team.id,
+    players: team.playerIds.map((pid,i)=>{
+      const p = playersMap[pid];
+      const isGK = i===0;
+      return { id:pid, name:p.name, off:p.off, def:p.def, isGK, position: isGK?'goalkeeper':positionForSlot(team.formation,i-1) };
+    })
+  };
+}
+function simulateMatch(homeTeam, awayTeam){
+  let zone=2, inBox=false, possession = Math.random()<0.5?'home':'away';
+  const score={home:0,away:0};
+  let assistCandidate=null, halftimeDone=false;
+  const goals=[];
+  const teams={home:homeTeam, away:awayTeam};
+  for(let minute=1; minute<=160; minute++){
+    if(minute===81 && !halftimeDone){
+      halftimeDone=true; zone=2; inBox=false; assistCandidate=null;
+      possession = possession==='home'?'away':'home';
+    }
+    const team=possession, opp = team==='home'?'away':'home';
+    const dir = team==='home'?1:-1;
+    const teamObj=teams[team], oppObj=teams[opp];
+    const targetZone = team==='home'?4:0;
+    const isAttackZone = (zone===targetZone);
+    const isShotStep = isAttackZone && inBox;
+    let attacker, defender, aTotal, dTotal;
+    if(isShotStep){
+      attacker = weightedPick(teamObj.players, attackWeight);
+      defender = keeperOf(oppObj);
+      aTotal = rollDice()+attacker.off;
+      dTotal = rollDice()+boost(defender.def);
+    } else {
+      attacker = weightedPick(teamObj.players, attackWeight);
+      defender = weightedPick(oppObj.players, defenseWeight);
+      const inCenter = (zone===2);
+      const attBoosted = inCenter && attacker.position==='midfielder';
+      const defBoosted = inCenter && defender.position==='midfielder';
+      aTotal = rollDice() + (attBoosted ? boost(attacker.off) : attacker.off);
+      dTotal = rollDice() + (defBoosted ? boost(defender.def) : defender.def);
+    }
+    if(aTotal>dTotal){
+      if(isShotStep){
+        score[team]++;
+        const assist = (assistCandidate && assistCandidate.playerId!==attacker.id) ? assistCandidate : null;
+        goals.push({minute, teamKey:team, scorerId:attacker.id, assistId: assist?assist.playerId:null});
+        zone=2; inBox=false; possession=opp; assistCandidate=null;
+      } else if(isAttackZone){
+        inBox=true; assistCandidate={playerId:attacker.id};
+      } else {
+        zone += dir;
+      }
+    } else if(dTotal>aTotal){
+      if(isShotStep){
+        zone = zone-dir; inBox=false; possession=opp; assistCandidate=null;
+      } else if(isAttackZone){
+        possession=opp;
+      } else {
+        possession=opp;
+      }
+    }
+    // tie: nothing changes, same team tries again next tick
+  }
+  return {homeGoals:score.home, awayGoals:score.away, goals};
+}
+
+// ---- Round-robin schedule (circle method), doubled with reversed home/away for the second leg ----
+function generateSchedule(teamIds){
+  const n = teamIds.length, half = n/2;
+  let arr = teamIds.slice();
+  const roundsFirstLeg = [];
+  for(let r=0;r<n-1;r++){
+    const round=[];
+    for(let i=0;i<half;i++){
+      const a=arr[i], b=arr[n-1-i];
+      round.push((r+i)%2===0 ? {home:a, away:b} : {home:b, away:a});
+    }
+    roundsFirstLeg.push(round);
+    arr = [arr[0], arr[n-1], ...arr.slice(1, n-1)];
+  }
+  const roundsSecondLeg = roundsFirstLeg.map(round=>round.map(m=>({home:m.away, away:m.home})));
+  return [...roundsFirstLeg, ...roundsSecondLeg];
+}
+
+// ---- League data model ----
+const LS_KEY = 'diceSoccerLeagueV1';
+function buildDefaultLeague(){
+  const players = {};
+  const teams = TEAM_COLORS.map((tc,ti)=>{
+    const playerIds=[];
+    for(let s=0;s<6;s++){
+      const id = `t${ti}_p${s}`;
+      playerIds.push(id);
+      players[id] = { id, name:`Player ${ti*6+s+1}`, off: d6()+d6()-2, def: d6()+d6()-2 };
+    }
+    return { id:`t${ti}`, name: tc.name, color: tc.hex, formation:'2-2-1', playerIds };
+  });
+  return { players, teams, seasonNum:0, activeSeason:null, history:[], careerStats:{} };
+}
+function loadLeague(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return buildDefaultLeague();
+}
+let league = loadLeague();
+function saveLeague(){ localStorage.setItem(LS_KEY, JSON.stringify(league)); }
+
+function resetLeague(){
+  if(!confirm('Reset the entire league? This clears all teams, seasons, and stats.')) return;
+  localStorage.removeItem(LS_KEY);
+  league = buildDefaultLeague();
+  saveLeague();
+  render();
+}
+
+// ---- Setup card ----
+function updatePlayerField(teamId, slot, field, el){
+  const team = league.teams.find(t=>t.id===teamId);
+  const id = team.playerIds[slot];
+  const p = league.players[id];
+  if(field==='name') p.name = el.value || p.name;
+  else p[field] = clampRating(el.value);
+  saveLeague();
+}
+function updateTeamField(teamId, field, el){
+  const team = league.teams.find(t=>t.id===teamId);
+  if(field==='formation'){ team.formation = el.value; retagTeam(teamId); }
+  else if(field==='color'){ team.color = el.value; }
+  else if(field==='name'){ team.name = el.value || team.name; }
+  saveLeague();
+}
+function retagTeam(teamId){
+  const team = league.teams.find(t=>t.id===teamId);
+  for(let i=1;i<6;i++){
+    const pos = positionForSlot(team.formation, i-1);
+    const num = countSlotNumber(team.formation, i-1, pos);
+    const tagEl = document.getElementById(`tag-${teamId}-${i}`);
+    if(tagEl) tagEl.textContent = `${positionAbbr[pos]}${num}`;
+  }
+  const sumEl = document.getElementById(`summary-${teamId}`);
+  if(sumEl) sumEl.textContent = formationSummary(team.formation);
+}
+function randomizeAllPlayers(){
+  Object.values(league.players).forEach(p=>{ p.off=d6()+d6()-2; p.def=d6()+d6()-2; });
+  saveLeague();
+  renderSetup();
+}
+function importLeaguePaste(){
+  const text = document.getElementById('league-paste-text').value;
+  const rows = parseLeaguePaste(text);
+  const statusEl = document.getElementById('league-paste-status');
+  if(!rows.length){
+    statusEl.textContent = 'No valid lines found — expected "Name  Off  Def" per line.';
+    return;
+  }
+  const n = Math.min(rows.length, 96);
+  for(let i=0;i<n;i++){
+    const ti=Math.floor(i/6), si=i%6;
+    const id = league.teams[ti].playerIds[si];
+    league.players[id].name = rows[i].name;
+    league.players[id].off = rows[i].off;
+    league.players[id].def = rows[i].def;
+  }
+  saveLeague();
+  renderSetup();
+  statusEl.textContent = `Imported ${n} of ${rows.length} player${rows.length===1?'':'s'} into ${Math.ceil(n/6)} team slot(s), 6 per team in order. First of each 6 is that team's goalkeeper.`;
+}
+function renderSetup(){
+  const grid = document.getElementById('teams-setup-grid');
+  grid.innerHTML = league.teams.map(team=>{
+    const rows = team.playerIds.map((pid,i)=>{
+      const p = league.players[pid];
+      const isGK = i===0;
+      const pos = isGK ? null : positionForSlot(team.formation,i-1);
+      const tag = isGK ? 'GK' : `${positionAbbr[pos]}${countSlotNumber(team.formation,i-1,pos)}`;
+      return `
+        <div class="player-row">
+          <span class="tag" id="tag-${team.id}-${i}">${tag}</span>
+          <input type="text" value="${escapeHtml(p.name)}" onchange="updatePlayerField('${team.id}',${i},'name',this)">
+          <input type="number" min="0" max="10" value="${p.off}" onchange="updatePlayerField('${team.id}',${i},'off',this)">
+          <input type="number" min="0" max="10" value="${p.def}" onchange="updatePlayerField('${team.id}',${i},'def',this)">
+        </div>`;
+    }).join('');
+    return `
+      <div class="team-setup-card">
+        <div class="header">
+          <input type="color" value="${team.color}" onchange="updateTeamField('${team.id}','color',this)" title="Team color">
+          <input type="text" class="team-name-input-sm" value="${escapeHtml(team.name)}" maxlength="24" onchange="updateTeamField('${team.id}','name',this)">
+        </div>
+        <div class="formation-row">
+          <label>Formation</label>
+          <select onchange="updateTeamField('${team.id}','formation',this)">
+            ${Object.keys(formationCounts).map(fk=>`<option value="${fk}" ${fk===team.formation?'selected':''}>${fk}</option>`).join('')}
+          </select>
+          <span class="fbreak" id="summary-${team.id}">${formationSummary(team.formation)}</span>
+        </div>
+        <div class="col-head-sm"><span></span><span>Player</span><span>Off</span><span>Def</span></div>
+        ${rows}
+      </div>`;
+  }).join('');
+}
+
+// ---- Season lifecycle ----
+function startSeason(){
+  const teamIds = league.teams.map(t=>t.id);
+  const schedule = generateSchedule(teamIds);
+  const fixtures=[];
+  schedule.forEach((round,ri)=>{
+    round.forEach(m=>fixtures.push({round:ri+1, home:m.home, away:m.away, played:false, hg:null, ag:null, goals:null}));
+  });
+  league.seasonNum++;
+  league.activeSeason = {
+    seasonNum: league.seasonNum,
+    teamsSnapshot: JSON.parse(JSON.stringify(league.teams)),
+    fixtures,
+    complete:false
+  };
+  saveLeague();
+}
+function teamById(snapshot, id){ return snapshot.find(t=>t.id===id); }
+function teamNameForPlayerInSnapshot(snapshot, id){
+  const t = snapshot.find(t=>t.playerIds.includes(id));
+  return t ? t.name : '—';
+}
+function teamNameForPlayerCurrent(id){
+  const t = league.teams.find(t=>t.playerIds.includes(id));
+  return t ? t.name : '—';
+}
+function simulateFixture(fx){
+  const s = league.activeSeason;
+  const homeTeam = teamById(s.teamsSnapshot, fx.home);
+  const awayTeam = teamById(s.teamsSnapshot, fx.away);
+  const homeMatch = buildMatchTeam(homeTeam, league.players);
+  const awayMatch = buildMatchTeam(awayTeam, league.players);
+  const result = simulateMatch(homeMatch, awayMatch);
+  fx.played = true;
+  fx.hg = result.homeGoals;
+  fx.ag = result.awayGoals;
+  fx.goals = result.goals;
+}
+function computeStandings(teamsSnapshot, fixtures){
+  const table={};
+  teamsSnapshot.forEach(t=> table[t.id]={id:t.id,name:t.name,color:t.color,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
+  fixtures.forEach(fx=>{
+    if(!fx.played) return;
+    const h=table[fx.home], a=table[fx.away];
+    h.p++; a.p++; h.gf+=fx.hg; h.ga+=fx.ag; a.gf+=fx.ag; a.ga+=fx.hg;
+    if(fx.hg>fx.ag){ h.w++; h.pts+=3; a.l++; }
+    else if(fx.ag>fx.hg){ a.w++; a.pts+=3; h.l++; }
+    else { h.d++; a.d++; h.pts++; a.pts++; }
+  });
+  return Object.values(table).sort((x,y)=> y.pts-x.pts || (y.gf-y.ga)-(x.gf-x.ga) || y.gf-x.gf || x.name.localeCompare(y.name));
+}
+function computeSeasonPlayerTotals(fixtures){
+  const totals={};
+  function bump(id,key){ if(!id) return; totals[id]=totals[id]||{goals:0,assists:0}; totals[id][key]++; }
+  fixtures.forEach(fx=>{
+    if(!fx.played || !fx.goals) return;
+    fx.goals.forEach(g=>{ bump(g.scorerId,'goals'); if(g.assistId) bump(g.assistId,'assists'); });
+  });
+  return totals;
+}
+function careerBump(id, field, amount){
+  if(!amount) return;
+  const c = league.careerStats[id] = league.careerStats[id] || {goals:0,assists:0,games:0,gkGames:0,cleanSheets:0,conceded:0};
+  c[field]+=amount;
+}
+function finalizeSeasonIfComplete(){
+  const s = league.activeSeason;
+  if(!s || s.complete) return;
+  if(!s.fixtures.every(f=>f.played)) return;
+  s.complete = true;
+
+  const table = computeStandings(s.teamsSnapshot, s.fixtures);
+  const totals = computeSeasonPlayerTotals(s.fixtures);
+
+  s.teamsSnapshot.forEach(team=>{
+    const teamFixtures = s.fixtures.filter(f=>f.home===team.id || f.away===team.id);
+    const games = teamFixtures.length;
+    team.playerIds.forEach(pid=> careerBump(pid,'games', games));
+    const gkId = team.playerIds[0];
+    let conceded=0, cleanSheets=0;
+    teamFixtures.forEach(f=>{
+      const against = f.home===team.id ? f.ag : f.hg;
+      conceded += against;
+      if(against===0) cleanSheets++;
+    });
+    careerBump(gkId,'gkGames', games);
+    careerBump(gkId,'conceded', conceded);
+    careerBump(gkId,'cleanSheets', cleanSheets);
+  });
+  Object.entries(totals).forEach(([id,t])=>{
+    careerBump(id,'goals', t.goals);
+    careerBump(id,'assists', t.assists);
+  });
+
+  const champ = table[0];
+  const topScorerEntry = Object.entries(totals).map(([id,t])=>({id,...t})).sort((a,b)=>b.goals-a.goals)[0];
+  league.history.push({
+    seasonNum: s.seasonNum,
+    championName: champ.name,
+    topScorer: topScorerEntry ? {name: league.players[topScorerEntry.id].name, goals: topScorerEntry.goals} : null
+  });
+  saveLeague();
+}
+function simMatchday(){
+  const s = league.activeSeason;
+  if(!s || s.complete) return;
+  const unplayed = s.fixtures.filter(f=>!f.played);
+  if(!unplayed.length){ finalizeSeasonIfComplete(); saveLeague(); render(); return; }
+  const round = Math.min(...unplayed.map(f=>f.round));
+  s.fixtures.filter(f=>!f.played && f.round===round).forEach(simulateFixture);
+  finalizeSeasonIfComplete();
+  saveLeague();
+  render();
+}
+function simRemainingFixtures(){
+  const s = league.activeSeason;
+  if(!s) return;
+  s.fixtures.forEach(f=>{ if(!f.played) simulateFixture(f); });
+  finalizeSeasonIfComplete();
+  saveLeague();
+}
+function simFullSeasonBtn(){
+  simRemainingFixtures();
+  render();
+}
+function runSeasons(nRaw){
+  const n = Math.max(1, Math.min(50, parseInt(nRaw)||1));
+  if(league.activeSeason && !league.activeSeason.complete){
+    simRemainingFixtures();
+  }
+  for(let i=0;i<n;i++){
+    startSeason();
+    simRemainingFixtures();
+  }
+  render();
+}
+
+// ---- Rendering ----
+function renderLeague(){
+  const s = league.activeSeason;
+  const leagueCard = document.getElementById('league-card');
+  const offCard = document.getElementById('offseason-card');
+  if(!s){ leagueCard.classList.add('hidden'); offCard.classList.add('hidden'); return; }
+  leagueCard.classList.remove('hidden');
+
+  document.getElementById('season-num').textContent = s.seasonNum;
+  document.getElementById('btn-matchday').disabled = s.complete;
+  document.getElementById('btn-full-season').disabled = s.complete;
+
+  const table = computeStandings(s.teamsSnapshot, s.fixtures);
+  document.getElementById('standings-body').innerHTML = table.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><span class="dot" style="background:${r.color}"></span>${escapeHtml(r.name)}</td>
+      <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
+      <td>${r.gf}</td><td>${r.ga}</td><td>${r.gf-r.ga}</td><td><b>${r.pts}</b></td>
+    </tr>`).join('');
+
+  const totals = computeSeasonPlayerTotals(s.fixtures);
+  const ranked = Object.entries(totals).map(([id,t])=>({
+    id, name: league.players[id].name, team: teamNameForPlayerInSnapshot(s.teamsSnapshot,id), ...t
+  }));
+  const topScorers = [...ranked].sort((a,b)=>b.goals-a.goals || b.assists-a.assists).slice(0,10);
+  const topAssists = [...ranked].sort((a,b)=>b.assists-a.assists || b.goals-a.goals).slice(0,10);
+  document.getElementById('top-scorers').innerHTML = topScorers.length
+    ? topScorers.map((p,i)=>`<div>${i+1}. <b>${escapeHtml(p.name)}</b> <span class="dim">(${escapeHtml(p.team)})</span> — ${p.goals} g</div>`).join('')
+    : '<div class="dim">No goals yet.</div>';
+  document.getElementById('top-assists').innerHTML = topAssists.length
+    ? topAssists.map((p,i)=>`<div>${i+1}. <b>${escapeHtml(p.name)}</b> <span class="dim">(${escapeHtml(p.team)})</span> — ${p.assists} a</div>`).join('')
+    : '<div class="dim">No assists yet.</div>';
+
+  const playedRounds = s.fixtures.filter(f=>f.played).map(f=>f.round);
+  const lastRound = playedRounds.length ? Math.max(...playedRounds) : null;
+  const latest = lastRound ? s.fixtures.filter(f=>f.round===lastRound && f.played) : [];
+  document.getElementById('latest-results').innerHTML = latest.length
+    ? latest.map(f=>{
+        const h=teamById(s.teamsSnapshot,f.home), a=teamById(s.teamsSnapshot,f.away);
+        return `<div class="log-entry">${escapeHtml(h.name)} ${f.hg} – ${f.ag} ${escapeHtml(a.name)}</div>`;
+      }).join('')
+    : '<div class="dim">No matches played yet.</div>';
+
+  document.getElementById('fixtures-progress').textContent =
+    `${s.fixtures.filter(f=>f.played).length} / ${s.fixtures.length} matches played`;
+
+  if(s.complete){
+    offCard.classList.remove('hidden');
+    document.getElementById('next-season-num').textContent = s.seasonNum+1;
+    const champ = table[0];
+    const topScorer = topScorers[0];
+    document.getElementById('offseason-summary').innerHTML =
+      `Champion: <span style="color:${champ.color}">${escapeHtml(champ.name)}</span> (${champ.pts} pts)`+
+      (topScorer ? `<br><span style="font-size:15px;color:var(--chalk);">Golden Boot: ${escapeHtml(topScorer.name)} — ${topScorer.goals} goals</span>` : '');
+  } else {
+    offCard.classList.add('hidden');
+  }
+}
+function renderCareer(){
+  const rows = Object.entries(league.careerStats).map(([id,c])=>{
+    const p = league.players[id];
+    if(!p) return null;
+    return { id, name:p.name, team: teamNameForPlayerCurrent(id), ...c };
+  }).filter(Boolean).sort((a,b)=> b.goals-a.goals || b.assists-a.assists);
+
+  document.getElementById('career-body').innerHTML = rows.length ? rows.map(r=>`
+    <tr>
+      <td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.team)}</td><td>${r.games}</td>
+      <td>${r.goals}</td><td>${r.assists}</td><td>${r.gkGames}</td><td>${r.cleanSheets}</td><td>${r.conceded}</td>
+    </tr>`).join('') : `<tr><td colspan="8" class="dim">No seasons completed yet.</td></tr>`;
+
+  document.getElementById('history-list').innerHTML = league.history.length
+    ? league.history.slice().reverse().map(h=>
+        `<div class="log-entry">Season ${h.seasonNum} — Champion <b>${escapeHtml(h.championName)}</b>`+
+        (h.topScorer ? ` · Golden Boot: ${escapeHtml(h.topScorer.name)} (${h.topScorer.goals})` : '')+
+        `</div>`
+      ).join('')
+    : '<div class="dim">No seasons completed yet.</div>';
+}
+function render(){
+  const started = league.seasonNum>0;
+  document.getElementById('setup-card').classList.toggle('hidden', started);
+  if(!started) renderSetup();
+  renderLeague();
+  renderCareer();
+}
+render();
+</script>
+</body>
+</html>
