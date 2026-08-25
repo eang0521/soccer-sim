@@ -35,7 +35,9 @@
   .num-input{width:56px;background:rgba(238,242,232,.06);border:1px solid rgba(238,242,232,.18);border-radius:6px;color:var(--chalk);padding:7px;font-size:13px;text-align:center;}
 
   .topbar{display:flex;justify-content:flex-end;margin:-10px 0 14px;}
-  .progress-panel{position:sticky;top:8px;z-index:30;background:var(--ink);border:1px solid var(--amber);border-radius:8px;padding:10px 16px;margin-bottom:14px;font-family:'JetBrains Mono',monospace;font-size:12.5px;text-align:center;color:var(--amber);}
+  .sim-bar{position:sticky;top:8px;z-index:30;background:var(--ink);border:1px solid rgba(232,178,60,.4);padding:14px 18px;}
+  .sim-bar .status-line{font-size:13px;}
+  .sim-bar .progress-line{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);}
 
   .tabbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
   .tabbtn{font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;background:rgba(238,242,232,.06);color:var(--chalk-dim);border:1px solid rgba(238,242,232,.15);border-radius:20px;padding:8px 14px;cursor:pointer;letter-spacing:.02em;}
@@ -106,7 +108,9 @@
   <div class="subtitle">96 players &middot; 16 teams &middot; draft, seasons, and free agency</div>
   <div class="topbar"><button class="btn danger small" onclick="resetLeague()">Reset league</button></div>
 
-  <div class="progress-panel hidden" id="progress-panel"><span id="progress-text"></span></div>
+  <div class="card sim-bar hidden" id="sim-bar">
+    <div id="sim-bar-content"></div>
+  </div>
 
   <div class="card live-panel hidden" id="live-panel">
     <div class="live-scoreboard">
@@ -1059,18 +1063,48 @@ function careerBump(id, field, amount){
   const c = league.careerStats[id] = league.careerStats[id] || {...BLANK_STAT_LINE};
   c[field]+=amount;
 }
+// Full stat line (goals/assists/saves/battles AND games/gkGames/cleanSheets/conceded) for
+// whatever's been played of this season so far -- the single source of truth for "current
+// season" totals, used live by the Stats tab and to keep careerStats from going stale mid-season.
 function computeSeasonTotals(s){
   const totals = {};
-  function bump(map,id,key,amt){ if(!id||!amt) return; map[id]=map[id]||{...BLANK_STAT_LINE}; map[id][key]+=amt; }
-  collectAllSeasonGames(s).forEach(g=>{
-    (g.goals||[]).forEach(ev=>{ bump(totals, ev.scorerId,'goals',1); if(ev.assistId) bump(totals, ev.assistId,'assists',1); });
-    (g.saves||[]).forEach(ev=>{ bump(totals, ev.gkId,'saves',1); });
+  function bump(id,key,amt){ if(!id||!amt) return; totals[id]=totals[id]||{...BLANK_STAT_LINE}; totals[id][key]+=amt; }
+  const allGames = collectAllSeasonGames(s);
+  allGames.forEach(g=>{
+    (g.goals||[]).forEach(ev=>{ bump(ev.scorerId,'goals',1); if(ev.assistId) bump(ev.assistId,'assists',1); });
+    (g.saves||[]).forEach(ev=>{ bump(ev.gkId,'saves',1); });
     Object.entries(g.battleStats||{}).forEach(([pid,b])=>{
-      bump(totals, pid,'offBattles',b.offBattles); bump(totals, pid,'offWins',b.offWins); bump(totals, pid,'offExpWins',b.offExpWins);
-      bump(totals, pid,'defBattles',b.defBattles); bump(totals, pid,'defWins',b.defWins); bump(totals, pid,'defExpWins',b.defExpWins);
+      bump(pid,'offBattles',b.offBattles); bump(pid,'offWins',b.offWins); bump(pid,'offExpWins',b.offExpWins);
+      bump(pid,'defBattles',b.defBattles); bump(pid,'defWins',b.defWins); bump(pid,'defExpWins',b.defExpWins);
+    });
+  });
+  league.teams.forEach(t=>{
+    const teamGames = allGames.filter(g=>g.home===t.id || g.away===t.id);
+    const games = teamGames.length;
+    t.playerIds.forEach(pid=> bump(pid,'games', games));
+    teamGames.forEach(g=>{
+      const isHome = g.home===t.id;
+      const gkId = isHome ? g.homeGkId : g.awayGkId;
+      const against = isHome ? g.ag : g.hg;
+      bump(gkId,'gkGames',1);
+      bump(gkId,'conceded',against);
+      if(against===0) bump(gkId,'cleanSheets',1);
     });
   });
   return totals;
+}
+// Career totals for every FINALIZED season, plus whatever's been played of the current one --
+// so "Career" never looks frozen mid-season.
+function liveCareerStats(){
+  const merged = {};
+  Object.entries(league.careerStats).forEach(([id,c])=> merged[id] = {...c});
+  if(league.activeSeason){
+    Object.entries(computeSeasonTotals(league.activeSeason)).forEach(([id,t])=>{
+      const row = merged[id] = merged[id] || {...BLANK_STAT_LINE};
+      Object.keys(BLANK_STAT_LINE).forEach(field=>{ row[field] += t[field]||0; });
+    });
+  }
+  return merged;
 }
 // How far each team got in the playoffs, derived by walking the bracket for whoever lost each
 // series (the champion and anyone who never played a series at all -- i.e. missed the playoffs
@@ -1103,41 +1137,12 @@ function computePlayoffResults(po, allTeamIds){
 }
 function finalizeSeasonStats(){
   const s = league.activeSeason;
-  const allGames = collectAllSeasonGames(s);
+  // computeSeasonTotals(s) already covers every field (goals/assists/saves/battles plus
+  // games/gkGames/cleanSheets/conceded) -- it's the season's final, complete stat line the
+  // instant every game (including playoffs) has been played, so it doubles as both the history
+  // snapshot and the source for the career rollup below.
   const totals = computeSeasonTotals(s);
-
-  // Build this season's own stat lines first (for the history snapshot), then roll each field
-  // into the running career totals -- one source of truth instead of two parallel bump passes.
-  const seasonPlayerStats = {};
-  function seasonBump(id, field, amount){
-    if(!id || !amount) return;
-    seasonPlayerStats[id] = seasonPlayerStats[id] || {...BLANK_STAT_LINE};
-    seasonPlayerStats[id][field] += amount;
-  }
-  league.teams.forEach(t=>{
-    const teamGames = allGames.filter(g=>g.home===t.id || g.away===t.id);
-    const games = teamGames.length;
-    t.playerIds.forEach(pid=> seasonBump(pid,'games', games));
-    teamGames.forEach(g=>{
-      const isHome = g.home===t.id;
-      const gkId = isHome ? g.homeGkId : g.awayGkId;
-      const against = isHome ? g.ag : g.hg;
-      seasonBump(gkId,'gkGames',1);
-      seasonBump(gkId,'conceded',against);
-      if(against===0) seasonBump(gkId,'cleanSheets',1);
-    });
-  });
-  Object.entries(totals).forEach(([pid,t])=>{
-    seasonBump(pid,'goals',t.goals);
-    seasonBump(pid,'assists',t.assists);
-    seasonBump(pid,'saves',t.saves);
-    seasonBump(pid,'offBattles',t.offBattles);
-    seasonBump(pid,'offWins',t.offWins);
-    seasonBump(pid,'offExpWins',t.offExpWins);
-    seasonBump(pid,'defBattles',t.defBattles);
-    seasonBump(pid,'defWins',t.defWins);
-    seasonBump(pid,'defExpWins',t.defExpWins);
-  });
+  const seasonPlayerStats = totals;
   Object.entries(seasonPlayerStats).forEach(([pid,line])=>{
     Object.entries(line).forEach(([field,amount])=> careerBump(pid, field, amount));
   });
@@ -1245,10 +1250,53 @@ function runFreeAgencyAndAdvance(){
   saveLeague();
 }
 
+// ---- Persistent sim-bar: sits above the tabs (sticky) so sim controls stay reachable and
+// visible regardless of which tab is open, instead of being buried inside the Season/Playoffs
+// tab content. ----
+function renderSimBar(){
+  const bar = document.getElementById('sim-bar');
+  if(!league.draftDone){ bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  const s = league.activeSeason;
+  let statusHtml, controlsHtml;
+  if(!s){
+    statusHtml = `<b>Ready</b> — draft's done, start the first season whenever you're ready.`;
+    controlsHtml = `<button class="btn sim-btn" onclick="startSeason(); render();">Start Season 1</button>`;
+  } else if(!s.regularComplete){
+    const played = s.fixtures.filter(f=>f.played).length;
+    statusHtml = `<b>Season ${s.seasonNum}</b> — regular season, ${played}/${s.fixtures.length} played`;
+    controlsHtml = `
+      <button class="btn small sim-btn" onclick="watchNextGameBtn()">Watch next</button>
+      <button class="btn secondary small sim-btn" onclick="simNextGameBtn()">Sim next</button>
+      <button class="btn secondary small sim-btn" onclick="simNextSlateBtn()">Sim slate</button>
+      <input type="number" class="num-input" id="n-slates" min="1" max="15" value="3">
+      <button class="btn secondary small sim-btn" onclick="simNSlatesBtn(document.getElementById('n-slates').value)">Sim N slates</button>
+      <button class="btn secondary small sim-btn" onclick="simRestOfRegularBtn()">Sim rest of season</button>`;
+  } else if(!s.playoffs.complete){
+    statusHtml = `<b>Season ${s.seasonNum}</b> — playoffs underway`;
+    controlsHtml = `
+      <button class="btn small sim-btn" onclick="watchNextPlayoffGameBtn()">Watch next</button>
+      <button class="btn secondary small sim-btn" onclick="simNextPlayoffGameBtn()">Sim next</button>
+      <button class="btn secondary small sim-btn" onclick="simRestOfPlayoffsBtn()">Sim rest of playoffs</button>`;
+  } else {
+    statusHtml = `<b>Season ${s.seasonNum} complete</b> — ${teamText(s.playoffs.champion)} are champions`;
+    controlsHtml = `
+      <button class="btn sim-btn" onclick="startNextSeasonBtn()">Run Offseason &amp; Start Season ${s.seasonNum+1}</button>
+      <input type="number" class="num-input" id="n-seasons" min="1" max="10" value="3">
+      <button class="btn secondary sim-btn" onclick="runNSeasonsBtn(document.getElementById('n-seasons').value)">Run N seasons</button>`;
+  }
+  document.getElementById('sim-bar-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;">
+      <div class="status-line">${statusHtml}</div>
+      <div class="progress-line" id="sim-progress-text"></div>
+    </div>
+    <div class="btn-row" style="margin-top:8px;">${controlsHtml}</div>
+  `;
+}
 // ---- Async, chunked sim runners (yield to the browser so the tab stays responsive) ----
-function showProgress(text){ document.getElementById('progress-panel').classList.remove('hidden'); document.getElementById('progress-text').textContent=text; }
-function setProgressText(text){ document.getElementById('progress-text').textContent=text; }
-function hideProgress(){ document.getElementById('progress-panel').classList.add('hidden'); }
+function showProgress(text){ const el=document.getElementById('sim-progress-text'); if(el) el.textContent=text; }
+function setProgressText(text){ const el=document.getElementById('sim-progress-text'); if(el) el.textContent=text; }
+function hideProgress(){ const el=document.getElementById('sim-progress-text'); if(el) el.textContent=''; }
 function disableSimButtons(disabled){
   document.querySelectorAll('.sim-btn').forEach(b=> b.disabled = disabled);
 }
@@ -1261,15 +1309,19 @@ function disableSimButtons(disabled){
 // old elements. Both helpers below are only ever called mid-loop (after that disable call), so
 // they re-assert it on the freshly rendered buttons.
 function renderLiveProgress(){
+  renderSimBar();
   renderSeasonTab();
   renderStandingsTab();
   renderStats();
+  renderPlayersTab();
   disableSimButtons(true);
 }
 function renderLivePlayoffProgress(){
+  renderSimBar();
   renderSeasonTab();
   renderPlayoffsTab();
   renderStats();
+  renderPlayersTab();
   disableSimButtons(true);
 }
 async function simFixtureList(list, label){
@@ -1281,8 +1333,8 @@ async function simFixtureList(list, label){
     const result = simulateOneGame(fx.home, fx.away, false);
     applyFixtureResult(fx, result);
     if(i%4===3 || i===list.length-1){
-      setProgressText(`${label} — ${i+1}/${list.length}`);
       renderLiveProgress();
+      setProgressText(`${label} — ${i+1}/${list.length}`);
       await new Promise(r=>setTimeout(r,0));
     }
   }
@@ -1338,8 +1390,8 @@ async function simRestOfPlayoffsBtn(){
     playSeriesGame(series, series.games.length);
     advanceBracket();
     if(guard%3===0){
-      setProgressText(`Simulating playoffs... (${guard} games)`);
       renderLivePlayoffProgress();
+      setProgressText(`Simulating playoffs... (${guard} games)`);
       await new Promise(r=>setTimeout(r,0));
     }
   }
@@ -1360,8 +1412,8 @@ async function runNSeasonsBtn(nRaw){
       const result = simulateOneGame(fx.home, fx.away, false);
       applyFixtureResult(fx, result);
       if(g%4===3){
-        setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — regular season ${g+1}/${unplayed.length}`);
         renderLiveProgress();
+        setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — regular season ${g+1}/${unplayed.length}`);
         await new Promise(r=>setTimeout(r,0));
       }
     }
@@ -1373,8 +1425,8 @@ async function runNSeasonsBtn(nRaw){
       playSeriesGame(series, series.games.length);
       advanceBracket();
       if(guard%3===0){
-        setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — playoffs, game ${guard}`);
         renderLivePlayoffProgress();
+        setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — playoffs, game ${guard}`);
         await new Promise(r=>setTimeout(r,0));
       }
     }
@@ -1410,6 +1462,10 @@ function startWatch(homeTeamId, awayTeamId, decisive, ctx){
   document.getElementById('live-controls').classList.remove('hidden');
   document.getElementById('live-final').classList.add('hidden');
   document.getElementById('live-log').innerHTML='';
+  // Sim controls are now reachable from every tab, so it's easy to reach for one while a watch
+  // is running -- disable them for the fixture/game the watch already owns until it closes or
+  // finishes (both paths end in a full render(), which rebuilds the sim-bar's buttons enabled).
+  disableSimButtons(true);
   renderLive();
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -1557,30 +1613,16 @@ function renderSeasonTab(){
   const card = document.getElementById('season-status-card');
   const s = league.activeSeason;
   if(!s){
-    card.innerHTML = `<h2>Ready</h2><div class="report-block">Draft's done. Start the first season whenever you're ready.</div>
-      <button class="btn" onclick="startSeason(); render();">Start Season 1</button>`;
+    card.innerHTML = `<h2>Ready</h2><div class="report-block">Draft's done — click "Start Season 1" in the bar above whenever you're ready.</div>`;
     document.getElementById('offseason-card').classList.add('hidden');
     return;
   }
   const played = s.fixtures.filter(f=>f.played).length;
   let html = `<h2>Season ${s.seasonNum}</h2>`;
   if(!s.regularComplete){
-    html += `<div class="report-block">Regular season — ${played} / ${s.fixtures.length} games played.</div>
-      <div class="btn-row">
-        <button class="btn small sim-btn" onclick="watchNextGameBtn()">Watch next game</button>
-        <button class="btn secondary small sim-btn" onclick="simNextGameBtn()">Sim next game</button>
-        <button class="btn secondary small sim-btn" onclick="simNextSlateBtn()">Sim next slate</button>
-        <input type="number" class="num-input" id="n-slates" min="1" max="15" value="3">
-        <button class="btn secondary small sim-btn" onclick="simNSlatesBtn(document.getElementById('n-slates').value)">Sim N slates</button>
-        <button class="btn secondary small sim-btn" onclick="simRestOfRegularBtn()">Sim rest of regular season</button>
-      </div>`;
+    html += `<div class="report-block">Regular season — ${played} / ${s.fixtures.length} games played. Sim controls are in the bar above, so they stay reachable from any tab.</div>`;
   } else if(!s.playoffs.complete){
-    html += `<div class="report-block">Regular season complete. Playoffs are underway — see the Playoffs tab for the bracket.</div>
-      <div class="btn-row">
-        <button class="btn small sim-btn" onclick="watchNextPlayoffGameBtn()">Watch next playoff game</button>
-        <button class="btn secondary small sim-btn" onclick="simNextPlayoffGameBtn()">Sim next playoff game</button>
-        <button class="btn secondary small sim-btn" onclick="simRestOfPlayoffsBtn()">Sim rest of playoffs</button>
-      </div>`;
+    html += `<div class="report-block">Regular season complete. Playoffs are underway — see the Playoffs tab for the bracket, or use the sim controls in the bar above.</div>`;
   } else {
     html += `<div class="report-block"><b>${teamText(s.playoffs.champion)}</b> won the Season ${s.seasonNum} championship. Regular-season winner: ${teamText(s.regularStandingsSnapshot[0].id)}.</div>`;
   }
@@ -1590,12 +1632,7 @@ function renderSeasonTab(){
   if(s.playoffs && s.playoffs.complete){
     off.classList.remove('hidden');
     off.innerHTML = `<h2>Offseason</h2>
-      <div class="report-block">Runs the Time/free-agency mechanic exactly once, then opens Season ${s.seasonNum+1}.</div>
-      <div class="btn-row">
-        <button class="btn sim-btn" onclick="startNextSeasonBtn()">Run Offseason &amp; Start Season ${s.seasonNum+1}</button>
-        <input type="number" class="num-input" id="n-seasons" min="1" max="10" value="3">
-        <button class="btn secondary sim-btn" onclick="runNSeasonsBtn(document.getElementById('n-seasons').value)">Run N more seasons</button>
-      </div>`;
+      <div class="report-block">The Time/free-agency mechanic runs once you click "Run Offseason &amp; Start Season ${s.seasonNum+1}" in the bar above.</div>`;
   } else {
     off.classList.add('hidden');
   }
@@ -1683,11 +1720,7 @@ function renderPlayoffsTab(){
   const seedList = po.seeds.map((id,i)=>`<div>${i+1}. ${teamDot(id)}${teamText(id)}</div>`).join('');
   let html = `<h2>Playoffs — Season ${s.seasonNum}</h2>`;
   if(!po.complete){
-    html += `<div class="btn-row" style="margin-bottom:14px;">
-      <button class="btn small sim-btn" onclick="watchNextPlayoffGameBtn()">Watch next game</button>
-      <button class="btn secondary small sim-btn" onclick="simNextPlayoffGameBtn()">Sim next game</button>
-      <button class="btn secondary small sim-btn" onclick="simRestOfPlayoffsBtn()">Sim rest of playoffs</button>
-    </div>`;
+    html += `<div class="report-block">Use the sim controls in the bar above to advance the bracket.</div>`;
   } else {
     html += `<div class="report-block"><b>Champion: ${teamDot(po.champion)}${teamText(po.champion)}</b></div>`;
   }
@@ -1768,7 +1801,7 @@ function renderStats(){
 
   let source, teamIdFor;
   if(scope==='career'){
-    source = Object.entries(league.careerStats).map(([id,c])=>({id,...c}));
+    source = Object.entries(liveCareerStats()).map(([id,c])=>({id,...c}));
     teamIdFor = (id)=> league.players[id] ? league.players[id].teamId : null;
   } else if(scope==='current'){
     const totals = league.activeSeason ? computeSeasonTotals(league.activeSeason) : {};
@@ -1829,7 +1862,7 @@ function renderPlayersTab(){
     <div class="dim" style="font-size:12.5px;">Grade ${p.grade} &middot; Base Off ${p.baseOff} / Def ${p.baseDef} &middot; This season Off ${p.off} / Def ${p.def} &middot; Time ${p.time.toFixed(1)} &middot; Current team: ${teamText(p.teamId)}</div>
   `;
 
-  const career = withDerivedBattleStats(league.careerStats[pid] || {...BLANK_STAT_LINE});
+  const career = withDerivedBattleStats(liveCareerStats()[pid] || {...BLANK_STAT_LINE});
   summaryEl.innerHTML = `
     <div><b>Career</b> — ${career.games} games (${career.gkGames} as GK, ${career.cleanSheets} clean sheets, ${career.conceded} conceded)</div>
     <div>Goals ${career.goals} &middot; Assists ${career.assists} &middot; Saves ${career.saves}</div>
@@ -1955,6 +1988,7 @@ function renderDraftGate(){
 
 // ---- Master render ----
 function render(){
+  renderSimBar();
   if(!league.draftDone){
     document.getElementById('draft-gate').classList.remove('hidden');
     document.getElementById('app-root').classList.add('hidden');
