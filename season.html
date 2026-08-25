@@ -203,6 +203,23 @@
           <div><h2 style="font-size:14px;">Saves</h2><div class="leaderboard" id="stats-saves"></div></div>
         </div>
       </div>
+      <div class="card">
+        <h2>Advanced: Offensive &amp; Defensive value</h2>
+        <div class="report-block">
+          <b>Battle</b> = one dice contest (attacker vs. defender/keeper) at a single tick.
+          <b>Win%</b> is just wins &divide; battles. <b>+/-</b> compares actual wins to the win
+          probability the engine's own odds table gives that exact matchup (their effective
+          rating vs. whoever they actually faced) &mdash; positive means they won more of their
+          battles than their rating alone would predict against that competition; negative means
+          fewer. Sorted by Off +/-.
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Player</th><th>Team</th><th>Off Bt</th><th>Off W%</th><th>Off +/-</th><th>Def Bt</th><th>Def W%</th><th>Def +/-</th><th>G</th><th>A</th><th>Sv</th></tr></thead>
+            <tbody id="advanced-stats-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div class="tabpanel" id="tab-draft">
@@ -569,7 +586,7 @@ function createMatchState(homeMatch, awayMatch, decisive){
     homeMatch, awayMatch, decisive,
     minute:0, zone:2, inBox:false, possession: Math.random()<0.5?'home':'away',
     score:{home:0,away:0}, assistCandidate:null,
-    goals:[], saves:[],
+    goals:[], saves:[], battles:[],
     halftimeDone:false, etHalftimeDone:false,
     stage:'regulation', wentToET:false, wentToPens:false,
     penalties:null, over:false, lastText:''
@@ -597,21 +614,35 @@ function matchTick(st){
   const isAttackZone = (st.zone===targetZone);
   const isShotStep = isAttackZone && st.inBox;
 
-  let attacker, defender, aTotal, dTotal;
+  let attacker, defender, aTotal, dTotal, effOff, effDef;
   if(isShotStep){
     attacker = weightedPick(teamObj.players, attackWeight);
     defender = keeperOf(oppObj);
-    aTotal = rollDice()+attacker.off;
-    dTotal = rollDice()+boost(defender.def);
+    effOff = attacker.off;
+    effDef = boost(defender.def);
+    aTotal = rollDice()+effOff;
+    dTotal = rollDice()+effDef;
   } else {
     attacker = weightedPick(teamObj.players, attackWeight);
     defender = weightedPick(oppObj.players, defenseWeight);
     const inCenter = (st.zone===2);
     const attBoosted = inCenter && attacker.position==='midfielder';
     const defBoosted = inCenter && defender.position==='midfielder';
-    aTotal = rollDice() + (attBoosted ? boost(attacker.off) : attacker.off);
-    dTotal = rollDice() + (defBoosted ? boost(defender.def) : defender.def);
+    effOff = attBoosted ? boost(attacker.off) : attacker.off;
+    effDef = defBoosted ? boost(defender.def) : defender.def;
+    aTotal = rollDice() + effOff;
+    dTotal = rollDice() + effDef;
   }
+  // Every contest is one "battle" between an attacker and a defender. Comparing the actual
+  // outcome to contestProbs' closed-form odds for these exact effective ratings is what lets the
+  // stats tab report over/under-performance relative to a player's own ratings, not just a raw
+  // win percentage.
+  const battleOdds = contestProbs(effOff, effDef);
+  st.battles.push({
+    attackerId: attacker.id, defenderId: defender.id,
+    attackerWinProb: battleOdds.winA, defenderWinProb: battleOdds.winD,
+    result: aTotal>dTotal ? 'win' : (dTotal>aTotal ? 'loss' : 'tie')
+  });
 
   let text='';
   if(aTotal>dTotal){
@@ -700,13 +731,31 @@ function checkPenaltyOutcome(p){
   }
   if(hT===aT && home!==away){ p.finished=true; p.winner = home>away?'home':'away'; }
 }
+// Reduces the raw tick-by-tick battle log (~160 entries) down to one small per-player row, so
+// what actually gets persisted per game is comparable in size to the goals/saves lists already
+// stored, not another 160-entry array.
+function summarizeBattles(battles){
+  const summary = {};
+  function row(id){ return summary[id] = summary[id] || {offBattles:0, offWins:0, offExpWins:0, defBattles:0, defWins:0, defExpWins:0}; }
+  battles.forEach(b=>{
+    const att = row(b.attackerId);
+    att.offBattles++;
+    att.offExpWins += b.attackerWinProb;
+    if(b.result==='win') att.offWins++;
+    const def = row(b.defenderId);
+    def.defBattles++;
+    def.defExpWins += b.defenderWinProb;
+    if(b.result==='loss') def.defWins++;
+  });
+  return summary;
+}
 function finalizeMatchResult(st){
   let winnerKey=null;
   if(st.wentToPens){ winnerKey = st.penalties.winner; }
   else if(st.score.home!==st.score.away){ winnerKey = st.score.home>st.score.away?'home':'away'; }
   return {
     homeGoals: st.score.home, awayGoals: st.score.away,
-    goals: st.goals, saves: st.saves,
+    goals: st.goals, saves: st.saves, battleStats: summarizeBattles(st.battles),
     wentToET: st.wentToET, wentToPens: st.wentToPens,
     pensScore: st.penalties ? {...st.penalties.score} : null,
     winnerKey,
@@ -854,7 +903,7 @@ function simulateOneGame(homeTeamId, awayTeamId, decisive){
 }
 function applyFixtureResult(fx, result){
   fx.played=true; fx.hg=result.homeGoals; fx.ag=result.awayGoals;
-  fx.goals=result.goals; fx.saves=result.saves;
+  fx.goals=result.goals; fx.saves=result.saves; fx.battleStats=result.battleStats;
   fx.homeGkId=result.homeGkId; fx.awayGkId=result.awayGkId;
   fx.homeFormation=result.homeFormation; fx.awayFormation=result.awayFormation;
 }
@@ -900,7 +949,8 @@ function recordSeriesGame(series, homeId, awayId, gameIndex, result){
   const winnerId = result.winnerKey==='home' ? homeId : awayId;
   series.games.push({
     index:gameIndex, home:homeId, away:awayId, hg:result.homeGoals, ag:result.awayGoals,
-    goals:result.goals, saves:result.saves, homeGkId:result.homeGkId, awayGkId:result.awayGkId,
+    goals:result.goals, saves:result.saves, battleStats:result.battleStats,
+    homeGkId:result.homeGkId, awayGkId:result.awayGkId,
     wentToET:result.wentToET, wentToPens:result.wentToPens, pensScore:result.pensScore, winnerTeamId:winnerId
   });
   series.wins[winnerId] = (series.wins[winnerId]||0)+1;
@@ -941,27 +991,33 @@ function findNextPlayoffSeries(){
 
 // ---- Stats rollup (called once, the instant the playoffs finish) ----
 function collectAllSeasonGames(s){
-  const games = s.fixtures.map(f=>({home:f.home,away:f.away,hg:f.hg,ag:f.ag,goals:f.goals,saves:f.saves,homeGkId:f.homeGkId,awayGkId:f.awayGkId}));
+  const games = s.fixtures.map(f=>({home:f.home,away:f.away,hg:f.hg,ag:f.ag,goals:f.goals,saves:f.saves,battleStats:f.battleStats,homeGkId:f.homeGkId,awayGkId:f.awayGkId}));
   if(s.playoffs){
     const allSeries=[s.playoffs.wildcard.m1,s.playoffs.wildcard.m2,s.playoffs.round1.a,s.playoffs.round1.b,
       s.playoffs.round1.c,s.playoffs.round1.d,s.playoffs.semis.s1,s.playoffs.semis.s2,s.playoffs.finals];
     allSeries.forEach(series=>{
-      series.games.forEach(g=> games.push({home:g.home,away:g.away,hg:g.hg,ag:g.ag,goals:g.goals,saves:g.saves,homeGkId:g.homeGkId,awayGkId:g.awayGkId}));
+      series.games.forEach(g=> games.push({home:g.home,away:g.away,hg:g.hg,ag:g.ag,goals:g.goals,saves:g.saves,battleStats:g.battleStats,homeGkId:g.homeGkId,awayGkId:g.awayGkId}));
     });
   }
   return games;
 }
+const BLANK_STAT_LINE = {goals:0,assists:0,saves:0,games:0,gkGames:0,cleanSheets:0,conceded:0,
+  offBattles:0,offWins:0,offExpWins:0,defBattles:0,defWins:0,defExpWins:0};
 function careerBump(id, field, amount){
   if(!id || !amount) return;
-  const c = league.careerStats[id] = league.careerStats[id] || {goals:0,assists:0,saves:0,games:0,gkGames:0,cleanSheets:0,conceded:0};
+  const c = league.careerStats[id] = league.careerStats[id] || {...BLANK_STAT_LINE};
   c[field]+=amount;
 }
 function computeSeasonTotals(s){
   const totals = {};
-  function bump(map,id,key){ if(!id) return; map[id]=map[id]||{goals:0,assists:0,saves:0}; map[id][key]++; }
+  function bump(map,id,key,amt){ if(!id||!amt) return; map[id]=map[id]||{...BLANK_STAT_LINE}; map[id][key]+=amt; }
   collectAllSeasonGames(s).forEach(g=>{
-    (g.goals||[]).forEach(ev=>{ bump(totals, ev.scorerId,'goals'); if(ev.assistId) bump(totals, ev.assistId,'assists'); });
-    (g.saves||[]).forEach(ev=>{ bump(totals, ev.gkId,'saves'); });
+    (g.goals||[]).forEach(ev=>{ bump(totals, ev.scorerId,'goals',1); if(ev.assistId) bump(totals, ev.assistId,'assists',1); });
+    (g.saves||[]).forEach(ev=>{ bump(totals, ev.gkId,'saves',1); });
+    Object.entries(g.battleStats||{}).forEach(([pid,b])=>{
+      bump(totals, pid,'offBattles',b.offBattles); bump(totals, pid,'offWins',b.offWins); bump(totals, pid,'offExpWins',b.offExpWins);
+      bump(totals, pid,'defBattles',b.defBattles); bump(totals, pid,'defWins',b.defWins); bump(totals, pid,'defExpWins',b.defExpWins);
+    });
   });
   return totals;
 }
@@ -987,6 +1043,12 @@ function finalizeSeasonStats(){
     careerBump(pid,'goals',t.goals);
     careerBump(pid,'assists',t.assists);
     careerBump(pid,'saves',t.saves);
+    careerBump(pid,'offBattles',t.offBattles);
+    careerBump(pid,'offWins',t.offWins);
+    careerBump(pid,'offExpWins',t.offExpWins);
+    careerBump(pid,'defBattles',t.defBattles);
+    careerBump(pid,'defWins',t.defWins);
+    careerBump(pid,'defExpWins',t.defExpWins);
   });
 
   const champTeam = league.teams.find(t=>t.id===s.playoffs.champion);
@@ -1590,15 +1652,24 @@ function renderTeamsTab(){
 }
 
 // ---- Stats tab ----
+function fmtPct(v){ return v===null ? '—' : v.toFixed(0)+'%'; }
+function fmtSigned(v){ if(v===null) return '—'; const s=v.toFixed(1); return v>0 ? '+'+s : s; }
 function renderStats(){
   let source;
   if(statsScope==='career'){
     source = Object.entries(league.careerStats).map(([id,c])=>({id,...c}));
   } else {
     const totals = league.activeSeason ? computeSeasonTotals(league.activeSeason) : {};
-    source = Object.entries(totals).map(([id,c])=>({id,goals:c.goals||0,assists:c.assists||0,saves:c.saves||0}));
+    source = Object.entries(totals).map(([id,c])=>({id,...c}));
   }
-  const withNames = source.filter(r=>league.players[r.id]).map(r=>({...r, name:league.players[r.id].name, teamId:league.players[r.id].teamId}));
+  const withNames = source.filter(r=>league.players[r.id]).map(r=>({
+    ...r,
+    name: league.players[r.id].name, teamId: league.players[r.id].teamId,
+    offWinPct: r.offBattles ? r.offWins/r.offBattles*100 : null,
+    defWinPct: r.defBattles ? r.defWins/r.defBattles*100 : null,
+    offValue: r.offBattles ? r.offWins-r.offExpWins : null,
+    defValue: r.defBattles ? r.defWins-r.defExpWins : null
+  }));
   function top(key){
     return withNames.slice().sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,10)
       .map((p,i)=>`<div>${i+1}. <b>${escapeHtml(p.name)}</b> <span class="dim">(${teamText(p.teamId)})</span> — ${p[key]||0}</div>`).join('') || '<div class="dim">No data yet.</div>';
@@ -1606,6 +1677,16 @@ function renderStats(){
   document.getElementById('stats-goals').innerHTML = top('goals');
   document.getElementById('stats-assists').innerHTML = top('assists');
   document.getElementById('stats-saves').innerHTML = top('saves');
+
+  const advRows = withNames.slice().sort((a,b)=>(b.offValue===null?-999:b.offValue)-(a.offValue===null?-999:a.offValue));
+  document.getElementById('advanced-stats-body').innerHTML = advRows.map(p=>`
+    <tr>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${teamText(p.teamId)}</td>
+      <td>${p.offBattles}</td><td>${fmtPct(p.offWinPct)}</td><td>${fmtSigned(p.offValue)}</td>
+      <td>${p.defBattles}</td><td>${fmtPct(p.defWinPct)}</td><td>${fmtSigned(p.defValue)}</td>
+      <td>${p.goals}</td><td>${p.assists}</td><td>${p.saves}</td>
+    </tr>`).join('') || `<tr><td colspan="11" class="dim">No data yet.</td></tr>`;
 }
 
 // ---- Draft tab ----
