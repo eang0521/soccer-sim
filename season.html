@@ -1326,8 +1326,8 @@ function disableSimButtons(disabled){
 }
 // Cheap mid-loop refresh: standings/stats are just a scan over however many games have been
 // played so far (<=120), trivial next to the per-game optimizer cost, so it's safe to call this
-// on every throttled yield point. Deliberately skips the pricier schedule/teams tabs, which get
-// their one full render() at the end of the loop.
+// on every throttled yield point. Still deliberately skips the pricier Schedule tab (120 rows),
+// which only gets rebuilt once at the end of the loop.
 // renderSeasonTab()/renderPlayoffsTab() rebuild their card's innerHTML from scratch, including
 // the sim-btn buttons — which wipes out the .disabled that disableSimButtons(true) set on the
 // old elements. Both helpers below are only ever called mid-loop (after that disable call), so
@@ -1338,6 +1338,7 @@ function renderLiveProgress(){
   renderStandingsTab();
   renderStats();
   renderPlayersTab();
+  renderTeamsTab();
   disableSimButtons(true);
 }
 function renderLivePlayoffProgress(){
@@ -1346,6 +1347,7 @@ function renderLivePlayoffProgress(){
   renderPlayoffsTab();
   renderStats();
   renderPlayersTab();
+  renderTeamsTab();
   disableSimButtons(true);
 }
 async function simFixtureList(list, label){
@@ -1797,7 +1799,7 @@ function renderTeamsTab(){
     standingsForDisplay = s ? computeStandings(league.teams, s.fixtures) : null;
     teamsForDisplay = league.teams.map(t=>({
       id:t.id, name:t.name, color:t.color,
-      players: t.playerIds.map(pid=>{ const p=league.players[pid]; return {name:p.name, grade:p.grade, off:p.off, def:p.def, time:p.time}; })
+      players: t.playerIds.map(pid=>{ const p=league.players[pid]; return {id:pid, name:p.name, grade:p.grade, off:p.off, def:p.def, time:p.time}; })
     }));
   } else {
     const h = league.history.find(x=>x.seasonNum===parseInt(select.value));
@@ -1809,9 +1811,18 @@ function renderTeamsTab(){
   grid.innerHTML = teamsForDisplay.map(t=>{
     const rec = standingsForDisplay ? standingsForDisplay.find(r=>r.id===t.id) : null;
     const recTxt = rec ? `${rec.w}-${rec.d}-${rec.l} &middot; ${rec.pts} pts &middot; Rk ${rec.rk}` : 'No games yet';
-    const rows = t.players.map(p=>
-      `<div class="roster-row"><span>${escapeHtml(p.name)}</span><span>G${p.grade}</span><span>${p.off}</span><span>${p.def}</span><span>${p.time.toFixed(1)}t</span></div>`
-    ).join('');
+    // Base Off+Def is a player's fixed identity rating (unaffected by this season's variance
+    // roll), tiebroken by grade -- the highest-ranked player by that measure wears the "C".
+    const sortedPlayers = t.players.slice().sort((a,b)=>{
+      const totalA = league.players[a.id].baseOff + league.players[a.id].baseDef;
+      const totalB = league.players[b.id].baseOff + league.players[b.id].baseDef;
+      if(totalB!==totalA) return totalB-totalA;
+      return b.grade-a.grade;
+    });
+    const rows = sortedPlayers.map((p,i)=>{
+      const captainTag = i===0 ? ` <span style="color:var(--amber);" title="Captain — highest base Off+Def on the roster">(C)</span>` : '';
+      return `<div class="roster-row"><span>${escapeHtml(p.name)}${captainTag}</span><span>G${p.grade}</span><span>${p.off}</span><span>${p.def}</span><span>${p.time.toFixed(1)}t</span></div>`;
+    }).join('');
     return `<div class="team-card">
       <div class="thead"><span class="dot" style="background:${t.color}"></span><b style="color:${teamTextColor(t.name)}">${escapeHtml(t.name)}</b></div>
       <div class="record">${recTxt}</div>
