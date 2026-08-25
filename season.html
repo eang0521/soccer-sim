@@ -71,6 +71,7 @@
   .pickboard-row.slot{grid-template-columns:34px 1fr 26px 26px;}
   .pickboard-row.board3{grid-template-columns:1fr 26px 26px;}
   .pickboard-row.board4{grid-template-columns:1fr 26px 26px 38px;}
+  .pickboard-row.signed{grid-template-columns:34px 1fr 26px 26px 38px;}
   .pickboard-row .num{text-align:right;color:var(--chalk-dim);}
 
   .fixture-row{display:grid;grid-template-columns:34px 1fr 50px 1fr 90px;gap:8px;align-items:center;font-size:13px;padding:5px 4px;border-bottom:1px solid rgba(238,242,232,.06);}
@@ -1794,6 +1795,12 @@ function boardRowHtml(p, fromTeamId){
   }
   return `<div class="pickboard-row board3"><span>${escapeHtml(p.name)}</span><span class="num">${p.baseOff}</span><span class="num">${p.baseDef}</span></div>`;
 }
+// Same shape as slotRowHtml's filled row, plus a 5th column for the team the player came from.
+// Used by the (historical) offseason report, so it reads like the live "players signed" slots.
+function signedRowHtml(toTeamId, player, fromTeamId){
+  const fromTag = fromTeamId ? teamAbbrSpan(fromTeamId) : '<span class="dim">&mdash;</span>';
+  return `<div class="pickboard-row signed">${teamAbbrSpan(toTeamId)}${nameSpan(player.name, teamColor(toTeamId))}<span class="num">${player.baseOff}</span><span class="num">${player.baseDef}</span>${fromTag}</div>`;
+}
 function undraftedBoard(){
   return Object.values(league.players).filter(p=>!p.teamId).sort((a,b)=>(b.baseOff+b.baseDef)-(a.baseOff+a.baseDef));
 }
@@ -2134,9 +2141,13 @@ function renderHistoryTab(){
 
   const hEntry = withReports.find(h=>h.seasonNum===parseInt(select.value));
   const rep = hEntry.offseasonReport;
-  const rows = rep.faReport.map(r=>
-    `<div class="log-entry">${teamText(r.teamId)} sign <b>${escapeHtml(league.players[r.playerId].name)}</b> <span class="dim">(rating ${r.rating.toFixed(1)})</span></div>`
-  ).join('');
+  // "From" team isn't stored on the report itself -- it's recovered from this same history
+  // entry's teamsSnapshot (who was on which roster that season, right before this offseason
+  // moved them), so this works for every stored report, not just ones saved after this existed.
+  const rows = rep.faReport.map(r=>{
+    const fromTeam = teamInSnapshot(hEntry.teamsSnapshot, r.playerId);
+    return signedRowHtml(r.teamId, league.players[r.playerId], fromTeam ? fromTeam.id : null);
+  }).join('');
   detail.innerHTML = `<div class="report-block">After Season ${hEntry.seasonNum}: Free Agency threshold was <b>${rep.threshold.toFixed(2)}</b>, ${rep.faCount} players entered the pool.</div><div class="log">${rows}</div>`;
 }
 
