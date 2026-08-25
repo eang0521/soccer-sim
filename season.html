@@ -168,7 +168,10 @@
 
     <div class="tabpanel" id="tab-schedule">
       <div class="card">
-        <h2>Schedule</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <h2 style="margin-bottom:0;">Schedule</h2>
+          <select class="season-select" id="schedule-team-select" onchange="renderScheduleTab()"></select>
+        </div>
         <div id="schedule-list"></div>
       </div>
     </div>
@@ -1457,28 +1460,45 @@ function renderStandingsTab(){
 }
 
 // ---- Schedule tab ----
+function populateTeamFilterSelect(select){
+  const prevValue = select.value;
+  select.innerHTML = '<option value="all">All teams</option>' +
+    league.teams.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+  const stillValid = Array.from(select.options).some(o=>o.value===prevValue);
+  select.value = stillValid ? prevValue : 'all';
+}
+function scheduleFixtureRow(f, isNext){
+  return `<div class="fixture-row">
+    <span class="dim">${isNext?'&rarr;':''}</span>
+    <span class="side">${teamDot(f.home)}${teamText(f.home)}</span>
+    <span class="score">${f.played? `${f.hg}-${f.ag}` : 'vs'}</span>
+    <span class="side away">${teamText(f.away)}${teamDot(f.away)}</span>
+    <span>${isNext? `<button class="btn secondary small sim-btn" onclick="simNextGameBtn()">Sim</button>` : ''}</span>
+  </div>`;
+}
 function renderScheduleTab(){
+  const select = document.getElementById('schedule-team-select');
+  populateTeamFilterSelect(select);
+
   const s = league.activeSeason;
   const el = document.getElementById('schedule-list');
   if(!s){ el.innerHTML = `<div class="dim">No season yet.</div>`; return; }
-  const bySlate = {};
-  s.fixtures.forEach(f=>{ (bySlate[f.slate] = bySlate[f.slate]||[]).push(f); });
   const nextFx = s.fixtures.find(f=>!f.played);
-  let html='';
-  Object.keys(bySlate).sort((a,b)=>a-b).forEach(slate=>{
-    html += `<div class="slate-hd">Slate ${slate}</div>`;
-    bySlate[slate].forEach(f=>{
-      const isNext = f===nextFx;
-      html += `<div class="fixture-row">
-        <span class="dim">${isNext?'&rarr;':''}</span>
-        <span class="side">${teamDot(f.home)}${teamText(f.home)}</span>
-        <span class="score">${f.played? `${f.hg}-${f.ag}` : 'vs'}</span>
-        <span class="side away">${teamText(f.away)}${teamDot(f.away)}</span>
-        <span>${isNext? `<button class="btn secondary small sim-btn" onclick="simNextGameBtn()">Sim</button>` : ''}</span>
-      </div>`;
+  const filterTeam = select.value;
+
+  if(filterTeam==='all'){
+    const bySlate = {};
+    s.fixtures.forEach(f=>{ (bySlate[f.slate] = bySlate[f.slate]||[]).push(f); });
+    let html='';
+    Object.keys(bySlate).sort((a,b)=>a-b).forEach(slate=>{
+      html += `<div class="slate-hd">Slate ${slate}</div>`;
+      bySlate[slate].forEach(f=>{ html += scheduleFixtureRow(f, f===nextFx); });
     });
-  });
-  el.innerHTML = html;
+    el.innerHTML = html;
+  } else {
+    const games = s.fixtures.filter(f=> f.home===filterTeam || f.away===filterTeam);
+    el.innerHTML = games.map(f=> scheduleFixtureRow(f, f===nextFx)).join('') || '<div class="dim">No games.</div>';
+  }
 }
 
 // ---- Playoffs tab ----
