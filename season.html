@@ -176,7 +176,10 @@
 
     <div class="tabpanel" id="tab-standings">
       <div class="card">
-        <h2>Standings</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <h2 style="margin-bottom:0;">Standings</h2>
+          <select class="season-select" id="standings-season-select" onchange="renderStandingsTab()"></select>
+        </div>
         <div class="table-scroll">
           <table class="data-table">
             <thead><tr><th>Rk</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead>
@@ -190,14 +193,23 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
           <h2 style="margin-bottom:0;">Schedule</h2>
-          <select class="season-select" id="schedule-team-select" onchange="renderScheduleTab()"></select>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select class="season-select" id="schedule-season-select" onchange="renderScheduleTab()"></select>
+            <select class="season-select" id="schedule-team-select" onchange="renderScheduleTab()"></select>
+          </div>
         </div>
         <div id="schedule-list"></div>
       </div>
     </div>
 
     <div class="tabpanel" id="tab-playoffs">
-      <div class="card" id="playoffs-card"></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <h2 style="margin-bottom:0;">Playoffs</h2>
+          <select class="season-select" id="playoffs-season-select" onchange="renderPlayoffsTab()"></select>
+        </div>
+        <div id="playoffs-content"></div>
+      </div>
     </div>
 
     <div class="tabpanel" id="tab-teams">
@@ -1181,6 +1193,29 @@ function computePlayoffResults(po, allTeamIds){
   if(po.champion) results[po.champion] = 'champion';
   return results;
 }
+// Lean snapshots for the history dropdown -- Schedule/Playoffs only ever need final scores and
+// bracket results to render, not the full goals/saves/battleStats event logs (those are already
+// aggregated into playerStats), so this drops that weight rather than storing full fixture/game
+// objects per season.
+function leanFixturesSnapshot(fixtures){
+  return fixtures.map(f=>({slate:f.slate, home:f.home, away:f.away, hg:f.hg, ag:f.ag, played:true}));
+}
+function leanGame(g){
+  return {index:g.index, home:g.home, away:g.away, hg:g.hg, ag:g.ag, wentToET:g.wentToET, wentToPens:g.wentToPens, pensScore:g.pensScore, winnerTeamId:g.winnerTeamId};
+}
+function leanSeries(series){
+  return {teamA:series.teamA, teamB:series.teamB, bestOf:series.bestOf, games:series.games.map(leanGame), wins:{...series.wins}, winnerTeamId:series.winnerTeamId};
+}
+function leanPlayoffsSnapshot(po){
+  return {
+    seeds: po.seeds.slice(),
+    wildcard: {m1:leanSeries(po.wildcard.m1), m2:leanSeries(po.wildcard.m2)},
+    round1: {a:leanSeries(po.round1.a), b:leanSeries(po.round1.b), c:leanSeries(po.round1.c), d:leanSeries(po.round1.d)},
+    semis: {s1:leanSeries(po.semis.s1), s2:leanSeries(po.semis.s2)},
+    finals: leanSeries(po.finals),
+    champion: po.champion, complete: po.complete
+  };
+}
 function finalizeSeasonStats(){
   const s = league.activeSeason;
   // computeSeasonTotals(s) already covers every field (goals/assists/saves/battles plus
@@ -1210,6 +1245,8 @@ function finalizeSeasonStats(){
     seasonNum: s.seasonNum,
     teamsSnapshot,
     standings: s.regularStandingsSnapshot,
+    fixtures: leanFixturesSnapshot(s.fixtures),
+    playoffs: leanPlayoffsSnapshot(s.playoffs),
     playoffResults: computePlayoffResults(s.playoffs, league.teams.map(t=>t.id)),
     playerStats: seasonPlayerStats,
     champTeamName: champTeam.name,
@@ -1847,10 +1884,18 @@ function renderSeasonTab(){
 
 // ---- Standings tab ----
 function renderStandingsTab(){
-  const s = league.activeSeason;
+  const select = document.getElementById('standings-season-select');
+  populateSeasonSelect(select, 'Current');
   const body = document.getElementById('standings-body');
-  if(!s){ body.innerHTML = `<tr><td colspan="10" class="dim">No season yet.</td></tr>`; return; }
-  const table = computeStandings(league.teams, s.fixtures);
+
+  let table;
+  if(select.value==='current'){
+    const s = league.activeSeason;
+    if(!s){ body.innerHTML = `<tr><td colspan="10" class="dim">No season yet.</td></tr>`; return; }
+    table = computeStandings(league.teams, s.fixtures);
+  } else {
+    table = league.history.find(x=>x.seasonNum===parseInt(select.value)).standings;
+  }
   body.innerHTML = table.map(r=>`
     <tr>
       <td>${r.rk}</td>
@@ -1878,18 +1923,29 @@ function scheduleFixtureRow(f, isNext){
   </div>`;
 }
 function renderScheduleTab(){
-  const select = document.getElementById('schedule-team-select');
-  populateTeamFilterSelect(select);
+  const seasonSelect = document.getElementById('schedule-season-select');
+  populateSeasonSelect(seasonSelect, 'Current');
+  const teamSelect = document.getElementById('schedule-team-select');
+  populateTeamFilterSelect(teamSelect);
 
-  const s = league.activeSeason;
   const el = document.getElementById('schedule-list');
-  if(!s){ el.innerHTML = `<div class="dim">No season yet.</div>`; return; }
-  const nextFx = s.fixtures.find(f=>!f.played);
-  const filterTeam = select.value;
+  let fixtures, nextFx;
+  if(seasonSelect.value==='current'){
+    const s = league.activeSeason;
+    if(!s){ el.innerHTML = `<div class="dim">No season yet.</div>`; return; }
+    fixtures = s.fixtures;
+    nextFx = fixtures.find(f=>!f.played);
+  } else {
+    const h = league.history.find(x=>x.seasonNum===parseInt(seasonSelect.value));
+    if(!h.fixtures){ el.innerHTML = `<div class="dim">Schedule wasn't saved for this season (from before this feature existed).</div>`; return; }
+    fixtures = h.fixtures;
+    nextFx = null; // a stored season is always fully complete -- nothing left to sim
+  }
+  const filterTeam = teamSelect.value;
 
   if(filterTeam==='all'){
     const bySlate = {};
-    s.fixtures.forEach(f=>{ (bySlate[f.slate] = bySlate[f.slate]||[]).push(f); });
+    fixtures.forEach(f=>{ (bySlate[f.slate] = bySlate[f.slate]||[]).push(f); });
     let html='';
     Object.keys(bySlate).sort((a,b)=>a-b).forEach(slate=>{
       html += `<div class="slate-hd">Slate ${slate}</div>`;
@@ -1897,7 +1953,7 @@ function renderScheduleTab(){
     });
     el.innerHTML = html;
   } else {
-    const games = s.fixtures.filter(f=> f.home===filterTeam || f.away===filterTeam);
+    const games = fixtures.filter(f=> f.home===filterTeam || f.away===filterTeam);
     el.innerHTML = games.map(f=> scheduleFixtureRow(f, f===nextFx)).join('') || '<div class="dim">No games.</div>';
   }
 }
@@ -1917,15 +1973,28 @@ function seriesBoxHtml(series, label){
   return `<div class="series-box"><div class="lbl">${label} &middot; Bo${series.bestOf}</div>${aLine}${bLine}${games}</div>`;
 }
 function renderPlayoffsTab(){
-  const card = document.getElementById('playoffs-card');
-  const s = league.activeSeason;
-  if(!s || !s.regularComplete){
-    card.innerHTML = `<h2>Playoffs</h2><div class="report-block">Playoffs begin once the regular season is complete.</div>`;
-    return;
+  const select = document.getElementById('playoffs-season-select');
+  populateSeasonSelect(select, 'Current');
+  const content = document.getElementById('playoffs-content');
+
+  let seasonNum, po;
+  if(select.value==='current'){
+    const s = league.activeSeason;
+    if(!s || !s.regularComplete){
+      content.innerHTML = `<div class="report-block">Playoffs begin once the regular season is complete.</div>`;
+      return;
+    }
+    seasonNum = s.seasonNum;
+    po = s.playoffs;
+  } else {
+    const h = league.history.find(x=>x.seasonNum===parseInt(select.value));
+    if(!h.playoffs){ content.innerHTML = `<div class="report-block dim">Playoff bracket wasn't saved for this season (from before this feature existed).</div>`; return; }
+    seasonNum = h.seasonNum;
+    po = h.playoffs;
   }
-  const po = s.playoffs;
+
   const seedList = po.seeds.map((id,i)=>`<div>${i+1}. ${teamDot(id)}${teamText(id)}</div>`).join('');
-  let html = `<h2>Playoffs — Season ${s.seasonNum}</h2>`;
+  let html = `<div class="dim" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;margin-bottom:10px;">Season ${seasonNum}</div>`;
   if(!po.complete){
     html += `<div class="report-block">Use the sim controls in the bar above to advance the bracket.</div>`;
   } else {
@@ -1940,7 +2009,7 @@ function renderPlayoffsTab(){
     <div class="bracket-col"><div class="bracket-round-title">Semis</div>${seriesBoxHtml(po.semis.s1,'Semi 1')}${seriesBoxHtml(po.semis.s2,'Semi 2')}</div>
     <div class="bracket-col"><div class="bracket-round-title">Final</div>${seriesBoxHtml(po.finals,'Championship')}</div>
   </div>`;
-  card.innerHTML = html;
+  content.innerHTML = html;
 }
 
 // ---- Teams tab ----
