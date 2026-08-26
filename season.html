@@ -583,15 +583,13 @@ function positionForSlot(formationKey, slotIndex){
 }
 
 // myPlayers: array of 6 plain {id,name,off,def}. opponentTeamObj: {players:[...with position/isGK set]}.
-// Trying all 6 players as goalkeeper is needlessly exhaustive: the keeper's Def gets a further
-// +50% boost on every shot they face, so a low-Def player is essentially never the right choice
-// no matter how the rest of the lineup shakes out. Restricting the search to the top 3 by Def
-// cuts optimizeFormation's work roughly in half for a negligible quality cost -- this runs before
-// every single game (regular season and playoffs), so that adds up across a season fast.
+// Every player has to be tried as goalkeeper -- a low-Def player can still be the right choice if
+// it frees up a high-Off player the team needs elsewhere (e.g. a 0/0 player in goal so a 10/8
+// player plays out of goal instead of wasting their Off), so pruning by Def alone would miss real
+// optima the exhaustive search is specifically there to find.
 function optimizeFormation(myPlayers, opponentTeamObj){
   let best=null;
-  const gkCandidates = myPlayers.map((_,i)=>i).sort((a,b)=>myPlayers[b].def-myPlayers[a].def).slice(0,3);
-  for(const gkIdx of gkCandidates){
+  for(let gkIdx=0; gkIdx<6; gkIdx++){
     const gk = myPlayers[gkIdx];
     const outfield = myPlayers.filter((_,i)=>i!==gkIdx);
     const idxs=[0,1,2,3,4];
@@ -627,15 +625,11 @@ function optimizeFormation(myPlayers, opponentTeamObj){
 function seedTeam(players){
   return { players: players.map((p,i)=>({...p, position: i===0?'goalkeeper':'defender', isGK:i===0})) };
 }
-// Alternating best-response between the two specific teams in THIS matchup. Capped at 2 rounds
-// (vs. 6 in the single-match tool) since this now runs before every one of ~140 games a season —
-// round 2 already captures most of the win-probability gain over a single one-sided pass.
-// One round means B gets to respond to A's real optimized lineup while A only ever sees B's
-// naive seed -- an asymmetry that's an acceptable trade for a background calculation running
-// automatically before every one of ~140 games a season (unlike the single-match tool, which
-// runs 6 rounds because it's a deliberate, one-off calculation the user explicitly triggers and
-// inspects).
-function mutualOptimize(playersA, playersB, maxRounds=1){
+// Alternating best-response between the two specific teams in THIS matchup. 3 rounds (vs. 6 in
+// the single-match tool, which is a deliberate one-off calculation the user explicitly triggers
+// and inspects) -- fewer rounds than that but still enough for both teams' lineups to actually
+// converge on a mutual best response rather than each just reacting once to a naive seed.
+function mutualOptimize(playersA, playersB, maxRounds=3){
   let curA = seedTeam(playersA), curB = seedTeam(playersB);
   let bestA=null, bestB=null;
   for(let r=0;r<maxRounds;r++){
@@ -1014,10 +1008,7 @@ function simulateOneGame(homeTeamId, awayTeamId, decisive){
   const awayTeam = league.teams.find(t=>t.id===awayTeamId);
   const homePlayers = homeTeam.playerIds.map(pid=>({...league.players[pid]}));
   const awayPlayers = awayTeam.playerIds.map(pid=>({...league.players[pid]}));
-  // 1 round here (vs. 3 for the interactively-watched path below) -- this runs for every
-  // instant/bulk-simulated game, which is the vast majority of a season, so it's the biggest
-  // lever for keeping "sim rest of season"/"run N seasons" fast.
-  const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 1);
+  const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 3);
   teamA.name = homeTeam.name; teamB.name = awayTeam.name;
   teamA.color = homeTeam.color; teamB.color = awayTeam.color;
   const result = runMatchToCompletion(teamA, teamB, decisive);
