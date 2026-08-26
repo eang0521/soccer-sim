@@ -1805,6 +1805,12 @@ function signedRowHtml(toTeamId, player, fromTeamId){
   const fromTag = fromTeamId ? teamAbbrSpan(fromTeamId) : '<span class="dim">&mdash;</span>';
   return `<div class="pickboard-row signed">${teamAbbrSpan(toTeamId)}${nameSpan(player.name, teamColor(toTeamId))}<span class="num">${player.baseOff}</span><span class="num">${player.baseDef}</span>${fromTag}</div>`;
 }
+// Free agency's left-side "slots" list, same idea as slotRowHtml but -- unlike the draft, where
+// a player never had a prior team -- also carries who each signing came from, via signedRowHtml.
+function offseasonSlotRowHtml(teamId, filledPlayer, fromTeamId){
+  if(!filledPlayer) return `<div class="pickboard-row signed dim">${teamAbbrSpan(teamId)}<span></span><span></span><span></span><span></span></div>`;
+  return signedRowHtml(teamId, filledPlayer, fromTeamId);
+}
 function undraftedBoard(){
   return Object.values(league.players).filter(p=>!p.teamId).sort((a,b)=>(b.baseOff+b.baseDef)-(a.baseOff+a.baseDef));
 }
@@ -2233,7 +2239,7 @@ function renderOffseasonPanel(){
   const passAssignments = off.assignments.filter(a=>a.pass===viewPass);
   const leftRows = passAssignments.map(a=>{
     const applied = a.index < off.nextIndex;
-    return slotRowHtml(a.teamId, applied ? league.players[a.playerId] : null);
+    return offseasonSlotRowHtml(a.teamId, applied ? league.players[a.playerId] : null, off.fromTeam[a.playerId]);
   }).join('');
   const rightRows = undraftedBoard().map(p=>boardRowHtml(p, off.fromTeam[p.id])).join('') || '<div class="dim">Board is empty.</div>';
   document.getElementById('offseason-panel-content').innerHTML = `
