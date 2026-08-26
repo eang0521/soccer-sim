@@ -583,9 +583,15 @@ function positionForSlot(formationKey, slotIndex){
 }
 
 // myPlayers: array of 6 plain {id,name,off,def}. opponentTeamObj: {players:[...with position/isGK set]}.
+// Trying all 6 players as goalkeeper is needlessly exhaustive: the keeper's Def gets a further
+// +50% boost on every shot they face, so a low-Def player is essentially never the right choice
+// no matter how the rest of the lineup shakes out. Restricting the search to the top 3 by Def
+// cuts optimizeFormation's work roughly in half for a negligible quality cost -- this runs before
+// every single game (regular season and playoffs), so that adds up across a season fast.
 function optimizeFormation(myPlayers, opponentTeamObj){
   let best=null;
-  for(let gkIdx=0; gkIdx<6; gkIdx++){
+  const gkCandidates = myPlayers.map((_,i)=>i).sort((a,b)=>myPlayers[b].def-myPlayers[a].def).slice(0,3);
+  for(const gkIdx of gkCandidates){
     const gk = myPlayers[gkIdx];
     const outfield = myPlayers.filter((_,i)=>i!==gkIdx);
     const idxs=[0,1,2,3,4];
@@ -624,7 +630,12 @@ function seedTeam(players){
 // Alternating best-response between the two specific teams in THIS matchup. Capped at 2 rounds
 // (vs. 6 in the single-match tool) since this now runs before every one of ~140 games a season —
 // round 2 already captures most of the win-probability gain over a single one-sided pass.
-function mutualOptimize(playersA, playersB, maxRounds=2){
+// One round means B gets to respond to A's real optimized lineup while A only ever sees B's
+// naive seed -- an asymmetry that's an acceptable trade for a background calculation running
+// automatically before every one of ~140 games a season (unlike the single-match tool, which
+// runs 6 rounds because it's a deliberate, one-off calculation the user explicitly triggers and
+// inspects).
+function mutualOptimize(playersA, playersB, maxRounds=1){
   let curA = seedTeam(playersA), curB = seedTeam(playersB);
   let bestA=null, bestB=null;
   for(let r=0;r<maxRounds;r++){
@@ -1003,7 +1014,10 @@ function simulateOneGame(homeTeamId, awayTeamId, decisive){
   const awayTeam = league.teams.find(t=>t.id===awayTeamId);
   const homePlayers = homeTeam.playerIds.map(pid=>({...league.players[pid]}));
   const awayPlayers = awayTeam.playerIds.map(pid=>({...league.players[pid]}));
-  const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 3);
+  // 1 round here (vs. 3 for the interactively-watched path below) -- this runs for every
+  // instant/bulk-simulated game, which is the vast majority of a season, so it's the biggest
+  // lever for keeping "sim rest of season"/"run N seasons" fast.
+  const {teamA,teamB,formationA,formationB} = mutualOptimize(homePlayers, awayPlayers, 1);
   teamA.name = homeTeam.name; teamB.name = awayTeam.name;
   teamA.color = homeTeam.color; teamB.color = awayTeam.color;
   const result = runMatchToCompletion(teamA, teamB, decisive);
@@ -1500,7 +1514,7 @@ async function simFixtureList(list, label){
     const fx=list[i];
     const result = simulateOneGame(fx.home, fx.away, false);
     applyFixtureResult(fx, result);
-    if(i%4===3 || i===list.length-1){
+    if(i%10===9 || i===list.length-1){
       renderLiveProgress();
       setProgressText(`${label} — ${i+1}/${list.length}`);
       await new Promise(r=>setTimeout(r,0));
@@ -1557,7 +1571,7 @@ async function simRestOfPlayoffsBtn(){
     if(!series || guard++>300) break;
     playSeriesGame(series, series.games.length);
     advanceBracket();
-    if(guard%3===0){
+    if(guard%6===0){
       renderLivePlayoffProgress();
       setProgressText(`Simulating playoffs... (${guard} games)`);
       await new Promise(r=>setTimeout(r,0));
@@ -1579,7 +1593,7 @@ async function runNSeasonsBtn(nRaw){
       const fx = unplayed[g];
       const result = simulateOneGame(fx.home, fx.away, false);
       applyFixtureResult(fx, result);
-      if(g%4===3){
+      if(g%10===9){
         renderLiveProgress();
         setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — regular season ${g+1}/${unplayed.length}`);
         await new Promise(r=>setTimeout(r,0));
@@ -1592,7 +1606,7 @@ async function runNSeasonsBtn(nRaw){
       if(!series || guard++>300) break;
       playSeriesGame(series, series.games.length);
       advanceBracket();
-      if(guard%3===0){
+      if(guard%6===0){
         renderLivePlayoffProgress();
         setProgressText(`Season ${league.seasonNum} (${i+1}/${n}) — playoffs, game ${guard}`);
         await new Promise(r=>setTimeout(r,0));
