@@ -2134,6 +2134,28 @@ function populatePlayerSelect(select){
   const stillValid = Array.from(select.options).some(o=>o.value===prevValue);
   select.value = stillValid ? prevValue : (sorted[0] ? sorted[0].id : '');
 }
+// A player's cumulative regular-season record across every team/season they were part of, plus
+// how many of those seasons ended with their team winning the championship.
+function playerCareerRecord(pid){
+  let w=0,d=0,l=0,championships=0;
+  league.history.forEach(h=>{
+    const team = teamInSnapshot(h.teamsSnapshot, pid);
+    if(!team) return;
+    const standRow = h.standings.find(r=>r.id===team.id);
+    if(standRow){ w+=standRow.w; d+=standRow.d; l+=standRow.l; }
+    if(h.playoffResults && h.playoffResults[team.id]==='champion') championships++;
+  });
+  return {w, d, l, pts:w*3+d, championships};
+}
+// Ranks every player (out of all 96) by career record -- points (3W+D) first, wins as tiebreak --
+// same currency the standings tables already use everywhere else in the app.
+function computeRecordRanks(){
+  const all = Object.keys(league.players).map(pid=>({pid, ...playerCareerRecord(pid)}));
+  all.sort((a,b)=> b.pts-a.pts || b.w-a.w);
+  const ranks = {};
+  all.forEach((r,i)=> ranks[r.pid]=i+1);
+  return ranks;
+}
 function renderPlayersTab(){
   const select = document.getElementById('player-select');
   populatePlayerSelect(select);
@@ -2155,8 +2177,12 @@ function renderPlayersTab(){
   `;
 
   const career = withDerivedBattleStats(liveCareerStats()[pid] || {...BLANK_STAT_LINE});
+  const record = playerCareerRecord(pid);
+  const recordRank = computeRecordRanks()[pid];
+  const totalPlayers = Object.keys(league.players).length;
   summaryEl.innerHTML = `
     <div><b>Career</b> — ${career.games} games (${career.gkGames} as GK, ${career.cleanSheets} clean sheets, ${career.conceded} conceded)</div>
+    <div>Record ${record.w}-${record.d}-${record.l} <span class="dim">(Rank ${recordRank} of ${totalPlayers})</span> &middot; Championships <b style="color:var(--amber);">${record.championships}</b></div>
     <div>Goals ${career.goals} &middot; Assists ${career.assists} &middot; Saves ${career.saves}</div>
     <div>Off battles ${career.offBattles} &middot; Off W% ${fmtPct(career.offWinPct)}</div>
     <div>Def battles ${career.defBattles} &middot; Def W% ${fmtPct(career.defWinPct)}</div>
