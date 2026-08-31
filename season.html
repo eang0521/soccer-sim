@@ -858,20 +858,76 @@ function buildDefaultLeague(){
     careerStats:{}, history:[]
   };
 }
-function loadLeague(){
+// IndexedDB, not localStorage: league.history keeps a full snapshot of every season ever played
+// (fixtures, playoffs, rosters) and never prunes, so a long-running league eventually blows past
+// localStorage's ~5MB per-origin quota. localStorage.setItem then throws mid-save with nothing
+// anywhere in this file catching it -- since every sim loop calls saveLeague() through an async
+// button handler with no .catch(), that exception silently kills the loop right where it stands
+// (the tab stays fully responsive; sim just stops making progress with no visible error).
+// IndexedDB's quota is a large fraction of free disk space, effectively unbounded at this scale.
+const IDB_NAME = 'diceSoccerLeagueDB', IDB_STORE = 'kv', IDB_KEY = 'league';
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const req = db.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, value){
+  const db = await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function loadLeague(){
+  try{
+    const stored = await idbGet(IDB_KEY);
+    if(stored) return JSON.parse(stored);
+  }catch(e){ console.error('Failed to load league from IndexedDB', e); }
+  // One-time migration: earlier versions of this app saved to localStorage under this key.
+  // Persist it into IndexedDB right away rather than waiting for the next saveLeague() call --
+  // otherwise a save that only ever gets read, never re-triggered, stays one bad moment (the
+  // browser evicting localStorage, the user clearing site data) away from being lost for good.
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(raw) return JSON.parse(raw);
+    if(raw){
+      idbSet(IDB_KEY, raw).catch(e=>console.error('Failed to persist migrated league', e));
+      return JSON.parse(raw);
+    }
   }catch(e){}
   return buildDefaultLeague();
 }
-let league = loadLeague();
-function saveLeague(){ localStorage.setItem(LS_KEY, JSON.stringify(league)); }
+let league = buildDefaultLeague(); // placeholder until the async load below resolves
+let saveFailed = false;
+function saveLeague(){
+  idbSet(IDB_KEY, JSON.stringify(league)).catch(e=>{
+    console.error('Failed to save league', e);
+    if(!saveFailed){ saveFailed = true; showSaveError(); }
+  });
+}
+function showSaveError(){
+  const bar = document.getElementById('sim-bar-content');
+  if(!bar) return;
+  bar.insertAdjacentHTML('afterbegin', `<div style="color:#f3b3ac;background:rgba(220,90,80,.12);border:1px solid rgba(220,90,80,.4);padding:8px 12px;margin-bottom:8px;font-size:13px;">&#9888; Couldn't save your progress -- your browser's storage may be full or unavailable. Recent games may be lost if you close this tab. Check the browser console for details.</div>`);
+}
 function resetLeague(){
   if(!confirm('Reset the entire league? This clears the draft, all seasons, and all stats.')) return;
   localStorage.removeItem(LS_KEY);
   league = buildDefaultLeague();
   liveWatch = null;
+  saveFailed = false;
   saveLeague();
   render();
 }
@@ -2389,7 +2445,10 @@ function render(){
   renderHistoryTab();
   switchTab(activeTab);
 }
-render();
+(async function init(){
+  league = await loadLeague();
+  render();
+})();
 </script>
 </body>
 </html>
