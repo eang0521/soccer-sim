@@ -112,9 +112,53 @@
 
   .report-block{font-size:12.5px;color:var(--chalk-dim);line-height:1.7;margin-bottom:14px;}
   .report-block b{color:var(--chalk);}
+
+  /* Season Mode password gate */
+  html.locked .wrap{display:none;}
+  #gate{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:var(--turf-dark);z-index:9999;padding:16px;}
+  html.locked #gate{display:flex;}
+  #gate form{background:var(--card);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:28px 24px;max-width:320px;width:100%;text-align:center;}
+  #gate h2{margin:0 0 6px;font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.04em;color:var(--chalk);}
+  #gate p{margin:0 0 16px;font-size:13px;color:var(--chalk-dim);}
+  #gate input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:var(--ink);color:var(--chalk);font-size:15px;margin-bottom:10px;}
+  #gate .gate-err{color:#ff8a80;font-size:12px;min-height:16px;margin-bottom:8px;}
+  #gate .gate-actions{display:flex;gap:8px;justify-content:center;align-items:center;}
+  #gate a{color:var(--amber);font-size:13px;text-decoration:none;}
 </style>
+<script>
+// Season Mode is password-protected. Note: this is a client-side gate only —
+// it keeps casual users out but is not real security.
+(function(){
+  var ok=false;
+  try{ ok = sessionStorage.getItem('seasonUnlocked')==='1'; }catch(e){}
+  if(!ok) document.documentElement.classList.add('locked');
+})();
+function checkGate(e){
+  e.preventDefault();
+  var inp=document.getElementById('gate-pw');
+  if(inp.value==='2303NCCS'){
+    try{ sessionStorage.setItem('seasonUnlocked','1'); }catch(err){}
+    document.documentElement.classList.remove('locked');
+  } else {
+    document.getElementById('gate-err').textContent='Incorrect password.';
+    inp.value=''; inp.focus();
+  }
+}
+</script>
 </head>
 <body>
+<div id="gate">
+  <form onsubmit="checkGate(event)" autocomplete="off">
+    <h2>Season Mode</h2>
+    <p>Enter the password to continue.</p>
+    <input type="password" id="gate-pw" placeholder="Password" autofocus autocomplete="off">
+    <div class="gate-err" id="gate-err"></div>
+    <div class="gate-actions">
+      <button class="btn" type="submit">Enter</button>
+      <a href="index.html">&larr; Back</a>
+    </div>
+  </form>
+</div>
 <div class="wrap">
   <div class="subnav"><a href="index.html">&larr; Match Simulator</a></div>
   <div class="title">The League</div>
